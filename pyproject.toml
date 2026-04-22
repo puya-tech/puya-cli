@@ -6,7 +6,7 @@ readme = "README.md"
 authors = [
     { name = "Puya Tech", email = "dev@costasurmat.cl" }
 ]
-requires-python = ">=3.12"
+requires-python = ">=3.10"
 license = { text = "MIT" }
 dependencies = [
     "typer>=0.13",
@@ -40,7 +40,7 @@ dev = [
 # ── Tooling config ──────────────────────────────────────────
 [tool.ruff]
 line-length = 100
-target-version = "py312"
+target-version = "py310"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]
