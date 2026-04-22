@@ -108,6 +108,74 @@ export ODOO_LOGIN=...
 export ODOO_API_KEY=...
 ```
 
+### Persistir config entre terminales
+
+Lo más cómodo: archivo con tus exports + source en el shell profile.
+
+#### Linux / WSL (bash)
+
+```bash
+# 1. Crear archivo
+cat > ~/puya-cli.env <<'EOF'
+export ODOO_ENV=staging
+export ODOO_STAGING_URL=https://...dev.odoo.com
+export ODOO_STAGING_DB=...
+export ODOO_STAGING_API_KEY=...
+export ODOO_LOGIN=tu_email@costasurmat.cl
+EOF
+
+# 2. Proteger permisos (contiene API key)
+chmod 600 ~/puya-cli.env
+
+# 3. Auto-source en cada shell nueva
+echo '[ -f ~/puya-cli.env ] && source ~/puya-cli.env' >> ~/.bashrc
+
+# 4. Recargar
+source ~/.bashrc
+```
+
+#### macOS (zsh por default)
+
+Idéntico al anterior pero usando `~/.zshrc`:
+
+```bash
+# Pasos 1 y 2 igual que Linux
+echo '[ -f ~/puya-cli.env ] && source ~/puya-cli.env' >> ~/.zshrc
+source ~/.zshrc
+```
+
+Si usás oh-my-zsh, también vale poner el source al final del `.zshrc`.
+
+#### Windows PowerShell
+
+En PowerShell la sintaxis es `$env:VAR = "value"`. Se persiste via el profile (`$PROFILE`):
+
+```powershell
+# 1. Ubicar o crear profile
+if (!(Test-Path $PROFILE)) { New-Item -Path $PROFILE -ItemType File -Force }
+
+# 2. Abrir y agregar las vars
+notepad $PROFILE
+```
+
+Agregás al profile:
+
+```powershell
+$env:ODOO_ENV = "staging"
+$env:ODOO_STAGING_URL = "https://...dev.odoo.com"
+$env:ODOO_STAGING_DB = "..."
+$env:ODOO_STAGING_API_KEY = "..."
+$env:ODOO_LOGIN = "tu_email@costasurmat.cl"
+```
+
+Guardás y en una nueva ventana de PowerShell `puya odoo status` ya debería mostrarlas.
+
+Alternativa global en Windows: **Configuración → Variables de entorno del sistema** → agregarlas ahí (se comparten entre PowerShell, CMD y apps).
+
+#### Actualizar / rotar una key
+
+Editás el archivo (`~/puya-cli.env` en Linux/Mac, `$PROFILE` en Windows), abrís terminal nueva o `source` otra vez. Listo.
+
 ### Otras vars útiles
 
 ```bash
