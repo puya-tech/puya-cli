@@ -1,6 +1,6 @@
 [project]
 name = "puya"
-version = "0.1.1"
+version = "0.1.2"
 description = "Puya Tech CLI: cliente unificado para Odoo, Notion, Supabase y otras integraciones de Costasurmat"
 readme = "README.md"
 authors = [
