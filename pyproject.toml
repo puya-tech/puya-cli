@@ -1,0 +1,51 @@
+[project]
+name = "puya"
+version = "0.1.0"
+description = "Puya Tech CLI: cliente unificado para Odoo, Notion, Supabase y otras integraciones de Costasurmat"
+readme = "README.md"
+authors = [
+    { name = "Puya Tech", email = "dev@costasurmat.cl" }
+]
+requires-python = ">=3.12"
+license = { text = "MIT" }
+dependencies = [
+    "typer>=0.13",
+    "rich>=13.9",
+    "pydantic>=2.10",
+    "pyyaml>=6.0",
+    "httpx>=0.28",
+]
+
+[project.scripts]
+puya = "puya.cli:app"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/puya"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"src/puya/lib/permissions.yaml" = "puya/lib/permissions.yaml"
+
+# ── Dev dependencies ────────────────────────────────────────
+[dependency-groups]
+dev = [
+    "ruff>=0.8",
+    "pytest>=8.3",
+    "pytest-cov>=6.0",
+]
+
+# ── Tooling config ──────────────────────────────────────────
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+ignore = ["E501"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra --strict-markers"
