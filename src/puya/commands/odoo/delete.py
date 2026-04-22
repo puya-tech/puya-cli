@@ -29,7 +29,7 @@ def delete_command(
     expiry = rt.rbac.pending_expiry_minutes
 
     try:
-        rt.rbac.check_model_access(rt.cfg.role, model, "unlink")
+        rt.rbac.check_model_access(rt.role, model, "unlink")
     except PermissionDenied as e:
         typer.echo(f"error: {e}", err=True)
         raise typer.Exit(code=1) from e
@@ -51,7 +51,7 @@ def delete_command(
 
     is_massive = len(id_list) > massive_threshold
     preview = build_delete_preview(model, old_records)
-    requires_approval = needs_approval(rt.rbac, rt.cfg.role, is_massive=is_massive)
+    requires_approval = needs_approval(rt.rbac, rt.role, is_massive=is_massive)
     status = "approval_required" if requires_approval else "pending"
 
     pending_id = rt.audit.create_pending(
@@ -81,7 +81,7 @@ def delete_command(
             rt.cfg,
             pending_id=pending_id,
             user=rt.username,
-            role=rt.cfg.role,
+            role=rt.role,
             action="delete",
             model=model,
             record_count=len(id_list),

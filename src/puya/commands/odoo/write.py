@@ -47,7 +47,7 @@ def write_command(
     expiry = rt.rbac.pending_expiry_minutes
 
     try:
-        perm = rt.rbac.check_model_access(rt.cfg.role, model, "write")
+        perm = rt.rbac.check_model_access(rt.role, model, "write")
     except PermissionDenied as e:
         typer.echo(f"error: {e}", err=True)
         raise typer.Exit(code=1) from e
@@ -80,7 +80,7 @@ def write_command(
 
     is_massive = len(id_list) > massive_threshold
     preview = build_write_preview(model, old_records, values_dict)
-    requires_approval = needs_approval(rt.rbac, rt.cfg.role, is_massive=is_massive)
+    requires_approval = needs_approval(rt.rbac, rt.role, is_massive=is_massive)
     status = "approval_required" if requires_approval else "pending"
 
     pending_id = rt.audit.create_pending(
@@ -110,7 +110,7 @@ def write_command(
             rt.cfg,
             pending_id=pending_id,
             user=rt.username,
-            role=rt.cfg.role,
+            role=rt.role,
             action="write",
             model=model,
             record_count=len(id_list),

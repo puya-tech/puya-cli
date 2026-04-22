@@ -7,10 +7,9 @@ from typing import Annotated
 
 import typer
 
-from puya.lib.config import load_config
-from puya.lib.odoo_client import OdooClient
 from puya.lib.output import emit
-from puya.lib.rbac import PermissionDenied, RBACEngine
+from puya.lib.rbac import PermissionDenied
+from puya.lib.runtime import setup
 
 
 def search_command(
@@ -45,11 +44,10 @@ def search_command(
     Equivalente al tool MCP `odoo_search`. RBAC valida que el rol pueda
     leer el modelo. Devuelve JSON por default (más útil para agentes).
     """
-    cfg = load_config()
-    rbac = RBACEngine()
+    rt = setup()
 
     try:
-        permission = rbac.check_model_access(cfg.role, model, "search_read")
+        permission = rt.rbac.check_model_access(rt.role, model, "search_read")
     except PermissionDenied as e:
         typer.echo(f"error: {e}", err=True)
         raise typer.Exit(code=1) from e
@@ -61,13 +59,11 @@ def search_command(
         raise typer.Exit(code=1) from e
 
     field_list = [f.strip() for f in fields.split(",")] if fields else ["id", "display_name"]
-    field_list = rbac.filter_fields(permission, field_list)
-
-    client = OdooClient.from_config(cfg)
+    field_list = rt.rbac.filter_fields(permission, field_list)
 
     options: dict[str, object] = {"limit": limit, "offset": offset}
     if order:
         options["order"] = order
 
-    records = client.search_read(model, domain_parsed, field_list, options)
+    records = rt.client.search_read(model, domain_parsed, field_list, options)
     emit(records, fmt=output)

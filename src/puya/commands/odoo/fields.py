@@ -28,7 +28,7 @@ def fields_command(
     rt = setup()
 
     try:
-        rt.rbac.check_model_access(rt.cfg.role, model, "search_read")
+        rt.rbac.check_model_access(rt.role, model, "search_read")
     except PermissionDenied as e:
         typer.echo(f"error: {e}", err=True)
         raise typer.Exit(code=1) from e

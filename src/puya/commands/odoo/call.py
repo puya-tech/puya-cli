@@ -32,9 +32,9 @@ def call_command(
     massive_threshold = rt.rbac.massive_threshold
     expiry = rt.rbac.pending_expiry_minutes
 
-    if not rt.rbac.check_method_access(rt.cfg.role, model, method):
+    if not rt.rbac.check_method_access(rt.role, model, method):
         typer.echo(
-            f"error: método '{method}' en '{model}' no permitido para role '{rt.cfg.role}'",
+            f"error: método '{method}' en '{model}' no permitido para role '{rt.role}'",
             err=True,
         )
         raise typer.Exit(code=1)
@@ -49,7 +49,7 @@ def call_command(
     record_ids = args_list[0] if args_list and isinstance(args_list[0], list) else []
     is_massive = len(record_ids) > massive_threshold
     preview = build_execute_preview(model, method, record_ids)
-    requires_approval = needs_approval(rt.rbac, rt.cfg.role, is_massive=is_massive)
+    requires_approval = needs_approval(rt.rbac, rt.role, is_massive=is_massive)
     status = "approval_required" if requires_approval else "pending"
 
     pending_id = rt.audit.create_pending(
@@ -80,7 +80,7 @@ def call_command(
             rt.cfg,
             pending_id=pending_id,
             user=rt.username,
-            role=rt.cfg.role,
+            role=rt.role,
             action=f"execute:{method}",
             model=model,
             record_count=len(record_ids),

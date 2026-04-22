@@ -26,7 +26,7 @@ def create_command(
     expiry = rt.rbac.pending_expiry_minutes
 
     try:
-        perm = rt.rbac.check_model_access(rt.cfg.role, model, "create")
+        perm = rt.rbac.check_model_access(rt.role, model, "create")
     except PermissionDenied as e:
         typer.echo(f"error: {e}", err=True)
         raise typer.Exit(code=1) from e

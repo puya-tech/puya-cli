@@ -27,6 +27,8 @@ class Runtime:
     client: OdooClient
     audit: AuditLogger
     username: str
+    role: str  # role efectivo (Odoo source of truth, env var puede override)
+    role_source: str  # "odoo" | "env_override" | "default"
 
 
 def setup() -> Runtime:
@@ -34,15 +36,56 @@ def setup() -> Runtime:
     _validate_odoo_config(cfg)
     rbac = RBACEngine()
     client = OdooClient.from_config(cfg)
-    user_info = client.execute_kw("res.users", "read", [[client.uid]], {"fields": ["login"]})
+
+    user_info = client.execute_kw(
+        "res.users", "read", [[client.uid]], {"fields": ["login", "x_mcp_role"]}
+    )
     username = user_info[0]["login"] if user_info else str(client.uid)
+    odoo_role = user_info[0].get("x_mcp_role") if user_info else None
+
+    # Resolver role efectivo:
+    # 1) Si PUYA_ROLE/ODOO_ROLE env var está seteado explícito → override (útil en CI/scripts)
+    # 2) Si Odoo tiene x_mcp_role asignado al user → ese (source of truth)
+    # 3) Default: vendedor (más conservador)
+    env_role_override = _env_role_override()
+    if env_role_override:
+        role, role_source = env_role_override, "env_override"
+    elif odoo_role:
+        role, role_source = odoo_role, "odoo"
+    else:
+        role, role_source = "vendedor", "default"
+
     audit = AuditLogger(
         user=username,
-        role=cfg.role,
+        role=role,
         supabase_url=cfg.supabase_url or None,
         supabase_key=cfg.supabase_service_key or None,
     )
-    return Runtime(cfg=cfg, rbac=rbac, client=client, audit=audit, username=username)
+    return Runtime(
+        cfg=cfg,
+        rbac=rbac,
+        client=client,
+        audit=audit,
+        username=username,
+        role=role,
+        role_source=role_source,
+    )
+
+
+def _env_role_override() -> str | None:
+    """Devuelve el role del env var SI fue seteado explícitamente.
+
+    No considera el default de load_config() (que pone "vendedor"); solo
+    si el usuario lo seteó realmente. Si no, devolvemos None y dejamos
+    que setup() use Odoo como source of truth.
+    """
+    import os
+
+    for key in ("PUYA_ROLE", "ODOO_ROLE"):
+        v = os.environ.get(key)
+        if v:
+            return v
+    return None
 
 
 def _validate_odoo_config(cfg: Config) -> None:
