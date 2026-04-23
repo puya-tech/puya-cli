@@ -92,6 +92,7 @@ def notify(
             record_count=record_count,
             preview=preview,
             reason=reason,
+            target_env=cfg.environment,
         )
         channel_type = "slack"
     elif telegram.enabled:
