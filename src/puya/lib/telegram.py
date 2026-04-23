@@ -28,11 +28,19 @@ class TelegramNotifier:
             logger.warning(f"Telegram API error ({method}): {e}")
             return None
 
-    def send_approval_request(self, pending_id: int, user: str, role: str,
-                              action: str, model: str, record_count: int,
-                              preview: str, reason: str | None = None) -> int | None:
+    def send_approval_request(
+        self,
+        pending_id: int,
+        user: str,
+        role: str,
+        action: str,
+        model: str,
+        record_count: int,
+        preview: str,
+        reason: str | None = None,
+    ) -> int | None:
         """Send an approval request to the Telegram group. Returns message_id."""
-        reason_line = f"\n📝 Razón: \"{reason}\"" if reason else ""
+        reason_line = f'\n📝 Razón: "{reason}"' if reason else ""
 
         # Truncate preview for Telegram (max ~4096 chars)
         if len(preview) > 1500:
@@ -52,38 +60,47 @@ class TelegramNotifier:
             f"```\n{preview_escaped}\n```"
         )
 
-        result = self._api("sendMessage", {
-            "chat_id": self._chat_id,
-            "text": text,
-            "parse_mode": "Markdown",
-            "reply_markup": {
-                "inline_keyboard": [[
-                    {"text": "✅ Aprobar", "callback_data": f"approve:{pending_id}"},
-                    {"text": "❌ Rechazar", "callback_data": f"reject:{pending_id}"},
-                ]]
+        result = self._api(
+            "sendMessage",
+            {
+                "chat_id": self._chat_id,
+                "text": text,
+                "parse_mode": "Markdown",
+                "reply_markup": {
+                    "inline_keyboard": [
+                        [
+                            {"text": "✅ Aprobar", "callback_data": f"approve:{pending_id}"},
+                            {"text": "❌ Rechazar", "callback_data": f"reject:{pending_id}"},
+                        ]
+                    ]
+                },
             },
-        })
+        )
 
         if result and result.get("ok"):
             return result["result"]["message_id"]
         return None
 
-    def update_message_approved(self, message_id: int, pending_id: int,
-                                approved_by: str) -> None:
+    def update_message_approved(self, message_id: int, pending_id: int, approved_by: str) -> None:
         """Update the approval message to show it was approved."""
-        self._api("editMessageText", {
-            "chat_id": self._chat_id,
-            "message_id": message_id,
-            "text": f"✅ *Solicitud #{pending_id} APROBADA*\n\nAprobada por: {approved_by}",
-            "parse_mode": "Markdown",
-        })
+        self._api(
+            "editMessageText",
+            {
+                "chat_id": self._chat_id,
+                "message_id": message_id,
+                "text": f"✅ *Solicitud #{pending_id} APROBADA*\n\nAprobada por: {approved_by}",
+                "parse_mode": "Markdown",
+            },
+        )
 
-    def update_message_rejected(self, message_id: int, pending_id: int,
-                                rejected_by: str) -> None:
+    def update_message_rejected(self, message_id: int, pending_id: int, rejected_by: str) -> None:
         """Update the approval message to show it was rejected."""
-        self._api("editMessageText", {
-            "chat_id": self._chat_id,
-            "message_id": message_id,
-            "text": f"❌ *Solicitud #{pending_id} RECHAZADA*\n\nRechazada por: {rejected_by}",
-            "parse_mode": "Markdown",
-        })
+        self._api(
+            "editMessageText",
+            {
+                "chat_id": self._chat_id,
+                "message_id": message_id,
+                "text": f"❌ *Solicitud #{pending_id} RECHAZADA*\n\nRechazada por: {rejected_by}",
+                "parse_mode": "Markdown",
+            },
+        )
