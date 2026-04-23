@@ -113,10 +113,10 @@ def notify(
     # interactivity API de Slack incluye channel+ts en cada callback, así que
     # no necesitamos persistirlo nosotros para el flujo de approval.
     if msg_id is not None and channel_type == "telegram":
-        try:
+        import contextlib
+
+        with contextlib.suppress(ValueError, TypeError):
             audit.update_pending_telegram_id(pending_id, int(msg_id))
-        except (ValueError, TypeError):
-            pass
 
     _ = cfg  # reservado para futura config (alert channel custom, etc.)
     return msg_id, channel_type
