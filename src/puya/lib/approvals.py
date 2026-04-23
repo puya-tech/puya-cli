@@ -107,8 +107,16 @@ def notify(
         )
         channel_type = "telegram"
 
-    if msg_id is not None:
-        audit.update_pending_telegram_id(pending_id, msg_id)
+    # update_pending_telegram_id solo aplica a Telegram (la columna es bigint y
+    # Telegram devuelve int). Slack devuelve un ts string con decimal
+    # (ej "1776952315.066299") — guardarlo ahí dispara HTTP 400. La
+    # interactivity API de Slack incluye channel+ts en cada callback, así que
+    # no necesitamos persistirlo nosotros para el flujo de approval.
+    if msg_id is not None and channel_type == "telegram":
+        try:
+            audit.update_pending_telegram_id(pending_id, int(msg_id))
+        except (ValueError, TypeError):
+            pass
 
     _ = cfg  # reservado para futura config (alert channel custom, etc.)
     return msg_id, channel_type
