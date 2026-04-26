@@ -99,6 +99,44 @@ def test_developer_SI_puede_ir_config_parameter(rbac):
     rbac.check_model_access("developer", "ir.config_parameter", "search_read")
 
 
+# ── read_only (Puyol Dev) ──────────────────────────────────────────
+
+
+def test_read_only_puede_leer_cualquier_modelo(rbac):
+    """read_only tiene operations: [search_read] sobre wildcard."""
+    rbac.check_model_access("read_only", "purchase.order", "search_read")
+    rbac.check_model_access("read_only", "sale.order", "search_read")
+
+
+def test_read_only_NO_puede_escribir(rbac):
+    """read_only NO tiene write (hard fail, no always_approve)."""
+    with pytest.raises(PermissionDenied):
+        rbac.check_model_access("read_only", "purchase.order", "write")
+
+
+def test_read_only_NO_puede_create(rbac):
+    with pytest.raises(PermissionDenied):
+        rbac.check_model_access("read_only", "res.partner", "create")
+
+
+def test_read_only_NO_puede_unlink(rbac):
+    with pytest.raises(PermissionDenied):
+        rbac.check_model_access("read_only", "res.partner", "unlink")
+
+
+def test_read_only_NO_always_approve(rbac):
+    """Crítico: read_only NO debe tener always_approve, sino los writes
+    crearían pendings en vez de fallar."""
+    config = rbac._get_role_config("read_only")
+    assert not config.get("always_approve", False)
+
+
+def test_read_only_NO_puede_tocar_infra_models(rbac):
+    """read_only no es developer → INFRA_BLOCKED_MODELS gateado."""
+    with pytest.raises(PermissionDenied):
+        rbac.check_model_access("read_only", "ir.config_parameter", "search_read")
+
+
 # ── Roles inexistentes ─────────────────────────────────────────────
 
 
