@@ -27,9 +27,14 @@ class Config:
     # Role efectivo del agente
     role: str
 
-    # Supabase (para audit + pending actions)
+    # Supabase (para audit + pending actions — modo legacy directo)
     supabase_url: str
     supabase_service_key: str
+
+    # puya-chat proxy URL (modo recomendado). Si está seteado, audit y
+    # pendings van por endpoints HTTPS de puya-chat en lugar de Supabase
+    # REST con service_key. Eso saca el service_key del CLI.
+    puya_chat_url: str
 
     @staticmethod
     def available_environments() -> list[str]:
@@ -87,6 +92,7 @@ def load_config() -> Config:
         role=role,
         supabase_url=_env("SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_URL").rstrip("/"),
         supabase_service_key=_env("SUPABASE_SERVICE_KEY", "SUPABASE_SERVICE_ROLE_KEY"),
+        puya_chat_url=_env("PUYA_CHAT_URL").rstrip("/"),
     )
 
 

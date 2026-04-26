@@ -9,7 +9,18 @@ logger = logging.getLogger("puya_odoo_mcp.audit")
 
 class AuditLogger:
     def __init__(
-        self, user: str, role: str, supabase_url: str | None = None, supabase_key: str | None = None
+        self,
+        user: str,
+        role: str,
+        supabase_url: str | None = None,
+        supabase_key: str | None = None,
+        # Proxy mode (recomendado): el CLI no usa service_key. En su lugar
+        # se identifica con su login + ODOO_API_KEY contra puya-chat, que
+        # valida y escribe a Supabase con su propio service_role.
+        puya_chat_url: str | None = None,
+        odoo_env: str | None = None,
+        odoo_login: str | None = None,
+        odoo_api_key: str | None = None,
     ):
         self.user = user
         self.role = role
@@ -17,9 +28,21 @@ class AuditLogger:
         self._supabase_key = supabase_key
         self._table = "mcp_audit_log"
 
+        self._proxy_url = puya_chat_url or None
+        self._odoo_env = odoo_env or None
+        self._odoo_login = odoo_login or None
+        self._odoo_api_key = odoo_api_key or None
+
+    @property
+    def _proxy_enabled(self) -> bool:
+        return bool(
+            self._proxy_url and self._odoo_env and self._odoo_login and self._odoo_api_key
+        )
+
     @property
     def _enabled(self) -> bool:
-        return bool(self._supabase_url and self._supabase_key)
+        # Para "está activado el audit persistente" — cualquier modo cuenta.
+        return self._proxy_enabled or bool(self._supabase_url and self._supabase_key)
 
     def _headers(self) -> dict:
         return {
@@ -28,6 +51,27 @@ class AuditLogger:
             "Content-Type": "application/json",
             "Prefer": "return=representation",
         }
+
+    def _proxy_headers(self) -> dict:
+        return {
+            "Content-Type": "application/json",
+            "X-Odoo-Login": self._odoo_login or "",
+            "X-Odoo-Api-Key": self._odoo_api_key or "",
+            "X-Odoo-Env": self._odoo_env or "",
+        }
+
+    def _proxy_request(
+        self, method: str, path: str, body: dict | None = None
+    ) -> list | dict | None:
+        url = f"{self._proxy_url}/api/mcp/{path.lstrip('/')}"
+        data = json.dumps(body, default=str).encode() if body else None
+        req = Request(url, data=data, headers=self._proxy_headers(), method=method)
+        try:
+            with urlopen(req, timeout=10) as resp:
+                return json.loads(resp.read())
+        except (HTTPError, URLError, TimeoutError) as e:
+            logger.warning(f"Proxy request failed ({method} {path}): {e}")
+            return None
 
     def _request(
         self, method: str, path: str, body: dict | None = None, params: str = ""
@@ -89,7 +133,15 @@ class AuditLogger:
             "new_values": new_values,
             "details": details,
             "duration_ms": round(duration_ms, 2) if duration_ms is not None else None,
+            # agent_id requerido por el endpoint proxy (NOT NULL en la tabla)
+            "agent_id": "puya-cli",
         }
+
+        if self._proxy_enabled:
+            result = self._proxy_request("POST", "audit/log", row)
+            if isinstance(result, dict) and "id" in result:
+                return result["id"]
+            return None
 
         result = self._request("POST", self._table, row)
         if result and isinstance(result, list) and len(result) > 0:
@@ -216,7 +268,14 @@ class AuditLogger:
             "is_massive": is_massive,
             "record_count": record_count,
             "details": details,
+            "agent_id": "puya-cli",
         }
+
+        if self._proxy_enabled:
+            result = self._proxy_request("POST", "pending", row)
+            if isinstance(result, dict) and "id" in result:
+                return result["id"]
+            return None
 
         result = self._request("POST", "mcp_pending_actions", row)
         if result and isinstance(result, list) and len(result) > 0:
@@ -227,6 +286,14 @@ class AuditLogger:
         """Get a pending action by ID."""
         if not self._enabled:
             return None
+
+        if self._proxy_enabled:
+            result = self._proxy_request("GET", f"pending/{pending_id}")
+            if isinstance(result, dict) and "data" in result:
+                data = result.get("data")
+                return data if isinstance(data, dict) else None
+            return None
+
         result = self._request(
             "GET",
             "mcp_pending_actions",
@@ -240,6 +307,14 @@ class AuditLogger:
         """Mark a pending action as confirmed."""
         if not self._enabled:
             return False
+
+        if self._proxy_enabled:
+            body: dict = {}
+            if audit_id is not None:
+                body["audit_id"] = audit_id
+            result = self._proxy_request("POST", f"pending/{pending_id}/confirm", body)
+            return isinstance(result, dict) and result.get("ok") is True
+
         result = self._request(
             "PATCH",
             "mcp_pending_actions",
@@ -268,6 +343,11 @@ class AuditLogger:
         """Cancel a pending action."""
         if not self._enabled:
             return False
+
+        if self._proxy_enabled:
+            result = self._proxy_request("POST", f"pending/{pending_id}/cancel")
+            return isinstance(result, dict) and result.get("ok") is True
+
         result = self._request(
             "PATCH",
             "mcp_pending_actions",
@@ -280,6 +360,15 @@ class AuditLogger:
         """Query pending actions."""
         if not self._enabled:
             return []
+
+        if self._proxy_enabled:
+            # El proxy ya filtra por user del JWT validado; el arg `user`
+            # del CLI se ignora (no podés ver pendings ajenos vía proxy).
+            result = self._proxy_request("GET", f"pending?limit={limit}")
+            if isinstance(result, dict) and isinstance(result.get("data"), list):
+                return result["data"]
+            return []
+
         params = ["status=eq.pending", "order=created_at.desc", f"limit={limit}"]
         if user:
             params.append(f"user_login=eq.{user}")
