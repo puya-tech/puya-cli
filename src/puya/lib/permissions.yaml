@@ -66,3 +66,16 @@ roles:
         operations: [search_read, write, create, unlink]
     methods_allowed: ["*"]
     rate_limit: 300
+
+  # Read-only: pensado para Puyol Dev (agente de coding interno) o cualquier
+  # consumo de solo lectura. Lee todos los modelos (excepto INFRA_BLOCKED_MODELS
+  # que gatea la lógica de rbac.py para non-developer). Cualquier write/create/
+  # unlink/method falla con PermissionDenied — NO hay always_approve, así no
+  # entra al flow de aprobación: todo intento de mutación es hard fail.
+  read_only:
+    models:
+      "*":
+        operations: [search_read]
+    methods_allowed: []
+    blocked_models: []
+    rate_limit: 120
