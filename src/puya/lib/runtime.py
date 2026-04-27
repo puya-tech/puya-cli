@@ -60,6 +60,10 @@ def setup() -> Runtime:
         role=role,
         supabase_url=cfg.supabase_url or None,
         supabase_key=cfg.supabase_service_key or None,
+        puya_chat_url=cfg.puya_chat_url or None,
+        odoo_env=cfg.environment if cfg.environment != "unknown" else None,
+        odoo_login=cfg.odoo_login or None,
+        odoo_api_key=cfg.odoo_api_key or None,
     )
     return Runtime(
         cfg=cfg,
