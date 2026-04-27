@@ -35,9 +35,7 @@ class AuditLogger:
 
     @property
     def _proxy_enabled(self) -> bool:
-        return bool(
-            self._proxy_url and self._odoo_env and self._odoo_login and self._odoo_api_key
-        )
+        return bool(self._proxy_url and self._odoo_env and self._odoo_login and self._odoo_api_key)
 
     @property
     def _enabled(self) -> bool:
