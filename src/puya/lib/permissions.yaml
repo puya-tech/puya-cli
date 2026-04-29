@@ -6,26 +6,22 @@ settings:
 
 roles:
   vendedor:
-    # Read + write/create on ALL models (con INFRA_BLOCKED_MODELS hardcoded
-    # excluido). Toda mutación pasa por aprobación humana en Slack
-    # (always_approve). unlink queda fuera por seguridad.
+    # Read + write + create en TODOS los modelos. Métodos invocables vía
+    # `puya odoo call` con methods_allowed=["*"]. Toda mutación pasa por
+    # aprobación humana en Slack (always_approve).
+    # unlink queda fuera por seguridad — no aparece en operations.
+    # res.users restringido a solo lectura: bloquea creación y modificación
+    # de email/password. Defensa adicional al PROTECTED_FIELDS (que ya
+    # bloquea x_mcp_role en write/create de cualquier modelo).
+    # INFRA_BLOCKED_MODELS hardcoded excluye ir.config_parameter,
+    # res.users.apikeys, change.password.*, payment.token.
     always_approve: true
     models:
       "*":
         operations: [search_read, write, create]
-      res.partner:
-        operations: [search_read, write, create]
-      sale.order:
-        operations: [search_read, write, create]
-      sale.order.line:
-        operations: [search_read, write, create]
-      product.product:
-        operations: [search_read, write]
-      product.template:
-        operations: [search_read, write]
-      stock.picking:
-        operations: [search_read, write]
-    methods_allowed: []
+      res.users:
+        operations: [search_read]
+    methods_allowed: ["*"]
     blocked_models: []
     rate_limit: 60
 
