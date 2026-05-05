@@ -1,4 +1,4 @@
-"""`puya odoo fields <model>` — fields_get contra Odoo (descubrir schema)."""
+"""`puya odoo fields <model>` — fields_get via puya-chat proxy."""
 
 from __future__ import annotations
 
@@ -6,14 +6,13 @@ from typing import Annotated
 
 import typer
 
-from puya.lib.odoo_client import OdooError
+from puya.commands._helpers import handle_api_error, setup_client
+from puya.lib.client import PuyaApiError
 from puya.lib.output import emit
-from puya.lib.rbac import PermissionDenied
-from puya.lib.runtime import setup
 
 
 def fields_command(
-    model: Annotated[str, typer.Argument(help="Modelo Odoo, ej: 'product.product'")],
+    model: Annotated[str, typer.Argument(help="Modelo Odoo")],
     attributes: Annotated[
         str | None,
         typer.Option(
@@ -24,25 +23,21 @@ def fields_command(
     ] = None,
     output: Annotated[str, typer.Option("--output", "-o")] = "json",
 ) -> None:
-    """Devuelve definición de campos de un modelo (útil para discovery)."""
-    rt = setup()
-
-    try:
-        rt.rbac.check_model_access(rt.role, model, "search_read")
-    except PermissionDenied as e:
-        typer.echo(f"error: {e}", err=True)
-        raise typer.Exit(code=1) from e
-
+    """fields_get via /api/cli-odoo/fields."""
+    _, client = setup_client()
     attrs = (
         [a.strip() for a in attributes.split(",")]
         if attributes
         else ["string", "type", "required", "readonly"]
     )
 
-    try:
-        result = rt.client.execute_kw(model, "fields_get", [], {"attributes": attrs})
-    except OdooError as e:
-        typer.echo(f"error: {e}", err=True)
-        raise typer.Exit(code=2) from e
+    payload: dict[str, object] = {"model": model, "attributes": attrs}
+    with client:
+        try:
+            _, body = client.post("/api/cli-odoo/fields", json=payload)
+        except PuyaApiError as e:
+            handle_api_error(e)
+            return
 
-    emit(result, fmt=output)
+    fields = body.get("fields", {}) if isinstance(body, dict) else body
+    emit(fields, fmt=output)

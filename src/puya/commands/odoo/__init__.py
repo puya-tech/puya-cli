@@ -1,12 +1,8 @@
-"""Subcomandos de Odoo: search, write, create, etc.
+"""Subcomandos `puya odoo *` — todos van vía HTTP a /api/cli-odoo/* en puya-chat.
 
-Capa 1 del diseño (low-level passthrough). Cada comando es un wrapper fino
-sobre `puya.lib.odoo_client.OdooClient`, con validación de RBAC vía
-`puya.lib.rbac.RBACEngine` y registro en audit log via `puya.lib.audit`.
-
-Los comandos high-level (stock_adjust, purchase_modify_date, etc.) viven
-en otros módulos (puya.commands.stock, puya.commands.purchase) y se
-construyen en una iteración posterior, junto con sus skills.
+Capa fina sobre `puya.lib.client.PuyaClient`. Sin RBAC ni Odoo client del
+lado del CLI — la lógica vive server-side en puya-chat. Esto deja al CLI
+en ~200 líneas.
 """
 
 from __future__ import annotations
@@ -28,24 +24,24 @@ from puya.commands.odoo.write import write_command
 
 app = typer.Typer(
     name="odoo",
-    help="Operaciones contra Odoo via XML-RPC.",
+    help="Operaciones contra Odoo via puya-chat proxy.",
     no_args_is_help=True,
 )
 
-# Read-only
+# Read
 app.command(name="status")(status_command)
 app.command(name="search")(search_command)
 app.command(name="count")(count_command)
 app.command(name="fields")(fields_command)
 app.command(name="read")(read_command)
 
-# Mutations (preview + approval flow)
+# Mutations (siempre approval humano via Slack)
 app.command(name="write")(write_command)
 app.command(name="create")(create_command)
 app.command(name="delete")(delete_command)
 app.command(name="call")(call_command)
 
-# Pending lifecycle
+# Pending lifecycle (consumer self-service: list + cancel; confirm es server-side)
 app.command(name="confirm")(confirm_command)
 app.command(name="cancel")(cancel_command)
 app.command(name="pending")(pending_command)

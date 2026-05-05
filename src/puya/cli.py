@@ -14,14 +14,14 @@ from puya.commands.odoo import app as odoo_app
 
 app = typer.Typer(
     name="puya",
-    help="Puya Tech CLI: cliente unificado para Odoo, Notion, Supabase y más.",
+    help="Puya Tech CLI: thin HTTP client al CLI proxy de puya-chat.",
     no_args_is_help=True,
     add_completion=True,
     rich_markup_mode="rich",
 )
 
 # ── Subcomandos por dominio ─────────────────────────────────
-app.add_typer(odoo_app, name="odoo", help="Operaciones contra Odoo (search, write, create, ...)")
+app.add_typer(odoo_app, name="odoo", help="Operaciones contra Odoo via puya-chat proxy.")
 
 
 @app.command()

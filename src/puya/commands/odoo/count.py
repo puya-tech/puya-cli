@@ -1,46 +1,35 @@
-"""`puya odoo count <model>` — search_count contra Odoo."""
+"""`puya odoo count <model>` — search_count via puya-chat proxy."""
 
 from __future__ import annotations
 
-import json
 from typing import Annotated
 
 import typer
 
-from puya.lib.odoo_client import OdooError
+from puya.commands._helpers import handle_api_error, parse_json, setup_client
+from puya.lib.client import PuyaApiError
 from puya.lib.output import emit
-from puya.lib.rbac import PermissionDenied
-from puya.lib.runtime import setup
 
 
 def count_command(
-    model: Annotated[str, typer.Argument(help="Modelo Odoo, ej: 'sale.order'")],
+    model: Annotated[str, typer.Argument(help="Modelo Odoo")],
     domain: Annotated[
         str, typer.Option("--domain", "-d", help="Dominio JSON. Default: [].")
     ] = "[]",
     output: Annotated[str, typer.Option("--output", "-o")] = "json",
 ) -> None:
-    """Cuenta registros que matchean un dominio (search_count)."""
-    rt = setup()
+    """search_count via /api/cli-odoo/count."""
+    _, client = setup_client()
+    domain_parsed = parse_json("domain", domain)
 
-    try:
-        perm = rt.rbac.check_model_access(rt.role, model, "search_read")
-    except PermissionDenied as e:
-        typer.echo(f"error: {e}", err=True)
-        raise typer.Exit(code=1) from e
+    with client:
+        try:
+            _, body = client.post(
+                "/api/cli-odoo/count",
+                json={"model": model, "domain": domain_parsed},
+            )
+        except PuyaApiError as e:
+            handle_api_error(e)
+            return
 
-    try:
-        domain_parsed = json.loads(domain)
-    except json.JSONDecodeError as e:
-        typer.echo(f"error: --domain no es JSON válido: {e}", err=True)
-        raise typer.Exit(code=1) from e
-
-    domain_parsed = rt.rbac.inject_domain(perm, domain_parsed, rt.client.uid)
-
-    try:
-        count = rt.client.execute_kw(model, "search_count", [domain_parsed])
-    except OdooError as e:
-        typer.echo(f"error: {e}", err=True)
-        raise typer.Exit(code=2) from e
-
-    emit({"count": count}, fmt=output)
+    emit(body, fmt=output)
