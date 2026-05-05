@@ -1,29 +1,33 @@
-"""`puya odoo status` — info de conexión y permisos efectivos."""
+"""`puya odoo status` — handshake con puya-chat."""
 
 from __future__ import annotations
 
+from typing import Annotated
+
 import typer
 
+from puya.lib.client import PuyaApiError, PuyaClient
+from puya.lib.config import load_config, validate_config
 from puya.lib.output import emit
-from puya.lib.runtime import setup
 
 
 def status_command(
-    output: str = typer.Option(
-        "table", "--output", "-o", help="Formato de salida: table | json | raw"
-    ),
+    output: Annotated[
+        str, typer.Option("--output", "-o", help="Formato: table | json | raw.")
+    ] = "json",
 ) -> None:
-    """Muestra entorno Odoo, role efectivo (de Odoo), conectividad."""
-    rt = setup()
-    data = {
-        "environment": rt.cfg.environment,
-        "odoo_url": rt.cfg.odoo_url,
-        "odoo_db": rt.cfg.odoo_db,
-        "odoo_login": rt.username,
-        "uid": rt.client.uid,
-        "role": rt.role,
-        "role_source": rt.role_source,
-        "supabase_configured": bool(rt.cfg.supabase_url and rt.cfg.supabase_service_key),
-        "available_envs": rt.cfg.available_environments(),
-    }
-    emit(data, fmt=output)
+    """Devuelve consumer + key + límites efectivos + permisos."""
+    cfg = load_config()
+    err = validate_config(cfg)
+    if err:
+        typer.echo(f"error: {err}", err=True)
+        raise typer.Exit(code=1)
+
+    with PuyaClient(cfg) as client:
+        try:
+            _, body = client.get("/api/cli-odoo/status")
+        except PuyaApiError as e:
+            typer.echo(f"error: {e}", err=True)
+            raise typer.Exit(code=e.exit_code) from e
+
+    emit(body, fmt=output)

@@ -1,15 +1,14 @@
-"""`puya odoo search <model>` — search_read genérico contra Odoo."""
+"""`puya odoo search <model>` — search_read via puya-chat proxy."""
 
 from __future__ import annotations
 
-import json
 from typing import Annotated
 
 import typer
 
+from puya.commands._helpers import handle_api_error, parse_json, setup_client
+from puya.lib.client import PuyaApiError
 from puya.lib.output import emit
-from puya.lib.rbac import PermissionDenied
-from puya.lib.runtime import setup
 
 
 def search_command(
@@ -39,31 +38,28 @@ def search_command(
         str, typer.Option("--output", "-o", help="Formato: table | json | raw.")
     ] = "json",
 ) -> None:
-    """Busca registros en Odoo (search_read).
+    """search_read via /api/cli-odoo/search."""
+    _, client = setup_client()
 
-    Equivalente al tool MCP `odoo_search`. RBAC valida que el rol pueda
-    leer el modelo. Devuelve JSON por default (más útil para agentes).
-    """
-    rt = setup()
-
-    try:
-        permission = rt.rbac.check_model_access(rt.role, model, "search_read")
-    except PermissionDenied as e:
-        typer.echo(f"error: {e}", err=True)
-        raise typer.Exit(code=1) from e
-
-    try:
-        domain_parsed = json.loads(domain)
-    except json.JSONDecodeError as e:
-        typer.echo(f"error: --domain no es JSON válido: {e}", err=True)
-        raise typer.Exit(code=1) from e
-
+    domain_parsed = parse_json("domain", domain)
     field_list = [f.strip() for f in fields.split(",")] if fields else ["id", "display_name"]
-    field_list = rt.rbac.filter_fields(permission, field_list)
 
-    options: dict[str, object] = {"limit": limit, "offset": offset}
+    payload: dict[str, object] = {
+        "model": model,
+        "domain": domain_parsed,
+        "fields": field_list,
+        "limit": limit,
+        "offset": offset,
+    }
     if order:
-        options["order"] = order
+        payload["order"] = order
 
-    records = rt.client.search_read(model, domain_parsed, field_list, options)
+    with client:
+        try:
+            _, body = client.post("/api/cli-odoo/search", json=payload)
+        except PuyaApiError as e:
+            handle_api_error(e)
+            return
+
+    records = body.get("records", []) if isinstance(body, dict) else body
     emit(records, fmt=output)

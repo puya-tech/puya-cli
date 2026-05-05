@@ -1,12 +1,14 @@
-"""Configuración del CLI.
+"""Configuración del CLI (post-refactor v1.0).
 
-Resolución por capas (orden de precedencia, gana el más arriba):
-  1. Flags de CLI (no implementado todavía)
-  2. Variables de entorno (PUYA_*, ODOO_*, SUPABASE_*)
-  3. Archivo de usuario `~/.config/puya/config.toml` (futuro)
+El CLI no habla con Odoo directamente. Es un wrapper HTTP contra
+puya-chat. Solo necesita 2 variables de entorno:
 
-Multi-entorno: ODOO_ENV indica el entorno (production | staging). Si no
-se setea, se infiere del URL.
+  PUYA_BASE_URL  -- URL del backend (ej: https://puya-chat-interno.vercel.app)
+  PUYA_API_KEY   -- API key tipo `puya_xxx` emitida por un admin
+
+La key encapsula entorno (staging | production), permisos por modelo,
+custom endpoints habilitados, modo (read_only | full), y rate limit.
+Toda la lógica de RBAC + audit + approvals vive server-side en puya-chat.
 """
 
 from __future__ import annotations
@@ -15,91 +17,32 @@ import os
 from dataclasses import dataclass
 
 
+DEFAULT_BASE_URL = "https://puya-chat-interno.vercel.app"
+
+
 @dataclass(frozen=True, slots=True)
 class Config:
-    # Odoo (ya con env resolved)
-    environment: str
-    odoo_url: str
-    odoo_db: str
-    odoo_login: str
-    odoo_api_key: str
-
-    # Role efectivo del agente
-    role: str
-
-    # Supabase (para audit + pending actions — modo legacy directo)
-    supabase_url: str
-    supabase_service_key: str
-
-    # puya-chat proxy URL (modo recomendado). Si está seteado, audit y
-    # pendings van por endpoints HTTPS de puya-chat en lugar de Supabase
-    # REST con service_key. Eso saca el service_key del CLI.
-    puya_chat_url: str
-
-    @staticmethod
-    def available_environments() -> list[str]:
-        """Lista de entornos detectables vía env vars (ODOO_<ENV>_URL)."""
-        envs: set[str] = set()
-        for key in os.environ:
-            if key.startswith("ODOO_") and key.endswith("_URL"):
-                env_name = key[len("ODOO_") : -len("_URL")].lower()
-                if env_name and env_name not in {"executor"}:
-                    envs.add(env_name)
-        return sorted(envs)
-
-
-def _env(*keys: str, default: str = "") -> str:
-    """Devuelve el primer env var no vacío de la lista, o default."""
-    for k in keys:
-        v = os.environ.get(k)
-        if v:
-            return v
-    return default
+    base_url: str
+    api_key: str
 
 
 def load_config() -> Config:
-    """Construye la Config a partir del entorno actual.
-
-    Resuelve qué entorno Odoo apuntar según `ODOO_ENV` (`production` |
-    `staging` | nombre custom). Si no está, usa `ODOO_URL`/`ODOO_DB`/etc.
-    directos (compatible con setup MCP actual).
-    """
-    env_name = _env("PUYA_ODOO_ENV", "ODOO_ENV", default="")
-
-    if env_name:
-        prefix = f"ODOO_{env_name.upper()}_"
-        odoo_url = _env(f"{prefix}URL")
-        odoo_db = _env(f"{prefix}DB")
-        odoo_api_key = _env(f"{prefix}API_KEY")
-        # Login puede ser global (mismo user en prod/staging) o por entorno
-        odoo_login = _env(f"{prefix}LOGIN", "ODOO_LOGIN")
-    else:
-        # Modo legacy: ODOO_URL/DB/LOGIN/API_KEY directos
-        odoo_url = _env("ODOO_URL")
-        odoo_db = _env("ODOO_DB")
-        odoo_login = _env("ODOO_LOGIN")
-        odoo_api_key = _env("ODOO_API_KEY")
-        env_name = _detect_env_from_url(odoo_url)
-
-    role = _env("PUYA_ROLE", "ODOO_ROLE", default="vendedor")
-
-    return Config(
-        environment=env_name or "unknown",
-        odoo_url=(odoo_url or "").rstrip("/"),
-        odoo_db=odoo_db,
-        odoo_login=odoo_login,
-        odoo_api_key=odoo_api_key,
-        role=role,
-        supabase_url=_env("SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_URL").rstrip("/"),
-        supabase_service_key=_env("SUPABASE_SERVICE_KEY", "SUPABASE_SERVICE_ROLE_KEY"),
-        puya_chat_url=_env("PUYA_CHAT_URL").rstrip("/"),
-    )
+    base_url = os.environ.get("PUYA_BASE_URL", "").strip().rstrip("/") or DEFAULT_BASE_URL
+    api_key = os.environ.get("PUYA_API_KEY", "").strip()
+    return Config(base_url=base_url, api_key=api_key)
 
 
-def _detect_env_from_url(url: str) -> str:
-    if not url:
-        return "unknown"
-    low = url.lower()
-    if ".dev.odoo.com" in low or "-staging-" in low:
-        return "staging"
-    return "production"
+def validate_config(cfg: Config) -> str | None:
+    """Devuelve None si la config es válida, o un mensaje de error humano."""
+    if not cfg.api_key:
+        return (
+            "PUYA_API_KEY no seteada.\n"
+            "  1) Pedile a un admin que cree un slot en /admin/cli-consumers.\n"
+            "  2) Loguéate en /cli-account y materializá la key (botón 'Generar mi key').\n"
+            "  3) Copiá la key plana (solo aparece UNA vez) y exportala:\n"
+            "       export PUYA_API_KEY=puya_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n"
+            "  4) Verificá: puya odoo status"
+        )
+    if not cfg.api_key.startswith("puya_"):
+        return f"PUYA_API_KEY no parece válida (debería empezar con 'puya_'): {cfg.api_key[:8]}…"
+    return None
