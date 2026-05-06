@@ -6,7 +6,7 @@ from typing import Annotated
 
 import typer
 
-from puya.commands._helpers import handle_api_error, parse_ids, parse_json, setup_client
+from puya.commands._helpers import EnvOption, handle_api_error, parse_ids, parse_json, setup_client
 from puya.lib.client import PuyaApiError
 from puya.lib.output import emit
 
@@ -27,9 +27,10 @@ def write_command(
         typer.Option("--reason", "-r", help="Razón del cambio"),
     ] = None,
     output: Annotated[str, typer.Option("--output", "-o")] = "json",
+    env: EnvOption = None,
 ) -> None:
     """Crea pending action con approval requerido (exit 3)."""
-    _, client = setup_client()
+    _, client = setup_client(env=env)
     id_list = parse_ids(ids)
     values_dict = parse_json("values", values)
     if not isinstance(values_dict, dict):

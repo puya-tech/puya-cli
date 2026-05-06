@@ -6,7 +6,7 @@ from typing import Annotated
 
 import typer
 
-from puya.commands._helpers import handle_api_error, setup_client
+from puya.commands._helpers import EnvOption, handle_api_error, setup_client
 from puya.lib.client import PuyaApiError
 from puya.lib.output import emit
 
@@ -22,9 +22,10 @@ def fields_command(
         ),
     ] = None,
     output: Annotated[str, typer.Option("--output", "-o")] = "json",
+    env: EnvOption = None,
 ) -> None:
     """fields_get via /api/cli-odoo/fields."""
-    _, client = setup_client()
+    _, client = setup_client(env=env)
     attrs = (
         [a.strip() for a in attributes.split(",")]
         if attributes

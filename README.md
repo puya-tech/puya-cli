@@ -13,12 +13,19 @@ API key opaca tipo `puya_xxx`.
 # 1. Instalar (Python ≥3.10)
 pipx install git+https://github.com/puya-tech/puya-cli.git
 
-# 2. Configurar 2 env vars
+# 2a. Modo single-env (legacy, una sola key)
 export PUYA_BASE_URL=https://puya-chat-interno.vercel.app
 export PUYA_API_KEY=puya_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
+# 2b. Modo multi-env (recomendado para agentes, desde v1.1.0)
+export PUYA_BASE_URL=https://puya-chat-interno.vercel.app
+export PUYA_API_KEY_STAGING=puya_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+export PUYA_API_KEY_PROD=puya_yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy
+export PUYA_TARGET_ENV=staging   # default cuando no se pasa --env
+
 # 3. Verificar
-puya odoo status
+puya odoo status                  # usa el default
+puya odoo status --env production # override puntual
 ```
 
 ## Cómo conseguir la API key
@@ -70,9 +77,66 @@ Output por default = JSON parseable. Cambiá con `--output table | raw`.
 
 ## Multi-environment
 
-Una API key apunta a **un solo entorno** (`staging` o `production`).
-Si necesitás los dos, pediselo al admin: te crea 2 slots, generás 2 keys,
-las exportás según el caso.
+Cada API key sigue apuntando a **un solo entorno** (su `target_env` queda
+fijo server-side al emitirla — `staging` o `production`). La novedad de
+**v1.1.0** es que el CLI puede tener **dos keys cargadas a la vez** y
+elegir cuál usar por invocación.
+
+### Env vars y resolución
+
+| Variable                | Rol                                                                 |
+| ----------------------- | ------------------------------------------------------------------- |
+| `PUYA_BASE_URL`         | URL del backend puya-chat                                           |
+| `PUYA_API_KEY_STAGING`  | Key con `target_env=staging` (modo multi-env)                       |
+| `PUYA_API_KEY_PROD`     | Key con `target_env=production` (modo multi-env)                    |
+| `PUYA_TARGET_ENV`       | Default cuando no se pasa `--env`. Valores: `staging` \| `production` |
+| `PUYA_API_KEY`          | Key única (modo single-env legacy)                                  |
+
+**Orden de resolución** de la key efectiva en cada comando:
+
+1. Flag `--env staging|production` — gana sobre todo, requiere su key correspondiente.
+2. `PUYA_TARGET_ENV` — actúa como default cuando `--env` no viene.
+3. Si solo está seteada **una** de `PUYA_API_KEY_STAGING` / `PUYA_API_KEY_PROD`,
+   se usa esa (sin ambigüedad).
+4. Fallback a `PUYA_API_KEY` legacy (modo single-env).
+5. Si nada de lo anterior aplica → error con instrucciones.
+
+Si `STAGING` y `PROD` están seteadas pero **no hay default** (ni `--env`,
+ni `PUYA_TARGET_ENV`, ni `PUYA_API_KEY`), el CLI **rechaza** y exige
+elegir un env explícito. Es defensivo: evita que un script ambiguo le
+pegue a prod por accidente.
+
+### Validación server-side
+
+El CLI manda el header `X-Puya-Requested-Env: <env>` cuando elegiste un
+env explícito. Si por error pegaste la key staging en `PUYA_API_KEY_PROD`
+y corrés `--env production`, **puya-chat responde 400** con un mensaje
+claro de mismatch — no llega a Odoo. La key sigue siendo el origen de
+verdad del env; el header es un check de coherencia.
+
+### Ejemplo: agente con keys de los dos entornos
+
+```bash
+# Una sola exportación — todos los comandos heredan staging por default,
+# y para tocar prod basta con --env production.
+export PUYA_BASE_URL=https://puya-chat-interno.vercel.app
+export PUYA_API_KEY_STAGING=puya_st_abc...
+export PUYA_API_KEY_PROD=puya_pr_xyz...
+export PUYA_TARGET_ENV=staging
+
+puya odoo status                              # → staging
+puya odoo search res.partner -l 5             # → staging
+puya odoo status --env production             # → production
+puya odoo write purchase.order '[42]' \
+  -v '{"date_planned":"2026-06-01"}' \
+  --env production -r "ajuste fecha"          # → pending Slack en prod
+```
+
+### Backwards compat
+
+Si solo tenés `PUYA_API_KEY` seteada (modo legacy v1.0), el CLI sigue
+funcionando idéntico. No se manda el header de coherencia y puya-chat
+resuelve el env desde la key.
 
 ## Datasets grandes
 
@@ -89,11 +153,33 @@ pip3 install --break-system-packages --no-cache-dir \
   git+https://github.com/puya-tech/puya-cli.git
 ```
 
-Setear `PUYA_BASE_URL` + `PUYA_API_KEY` como env vars del container. Sin
-variables `ODOO_*`, `SUPABASE_*`, `SLACK_*`, `PUYA_ROLE` — todas quedaron
-obsoletas en v1.0.
+Modo recomendado (multi-env, desde v1.1.0):
+
+```bash
+PUYA_BASE_URL=https://puya-chat-interno.vercel.app
+PUYA_API_KEY_STAGING=puya_st_...
+PUYA_API_KEY_PROD=puya_pr_...
+PUYA_TARGET_ENV=staging   # default; sobreescribible por comando con --env
+```
+
+Modo legacy (single-env, sigue funcionando):
+
+```bash
+PUYA_BASE_URL=https://puya-chat-interno.vercel.app
+PUYA_API_KEY=puya_...
+```
+
+Sin variables `ODOO_*`, `SUPABASE_*`, `SLACK_*`, `PUYA_ROLE` — todas
+quedaron obsoletas en v1.0. Para guidance dirigida a coding agents
+(Puyol Ops, Puyol Dev, Codex), ver [`AGENTS.md`](AGENTS.md).
 
 ## Historial
+
+v1.1.0 — multi-env support: dos keys cargadas a la vez vía
+`PUYA_API_KEY_STAGING` / `PUYA_API_KEY_PROD`, flag `--env` por comando,
+default `PUYA_TARGET_ENV`. Validación `X-Puya-Requested-Env` server-side
+para detectar mismatch key/env. Backwards compat con `PUYA_API_KEY`
+single-env de v1.0.
 
 v1.0.0 — refactor "Opción 3": el CLI ya no contiene credenciales de Odoo
 ni lógica de RBAC. Todo el knowledge sensible vive server-side en

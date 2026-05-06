@@ -6,6 +6,7 @@ from typing import Annotated
 
 import typer
 
+from puya.commands._helpers import EnvOption
 from puya.lib.client import PuyaApiError, PuyaClient
 from puya.lib.config import load_config, validate_config
 from puya.lib.output import emit
@@ -15,10 +16,11 @@ def status_command(
     output: Annotated[
         str, typer.Option("--output", "-o", help="Formato: table | json | raw.")
     ] = "json",
+    env: EnvOption = None,
 ) -> None:
     """Devuelve consumer + key + límites efectivos + permisos."""
-    cfg = load_config()
-    err = validate_config(cfg)
+    cfg = load_config(env_override=env)
+    err = validate_config(cfg, env_override=env)
     if err:
         typer.echo(f"error: {err}", err=True)
         raise typer.Exit(code=1)

@@ -6,7 +6,7 @@ from typing import Annotated
 
 import typer
 
-from puya.commands._helpers import handle_api_error, setup_client
+from puya.commands._helpers import EnvOption, handle_api_error, setup_client
 from puya.lib.client import PuyaApiError
 from puya.lib.output import emit
 
@@ -14,9 +14,10 @@ from puya.lib.output import emit
 def cancel_command(
     pending_id: Annotated[int, typer.Argument(help="ID del pending action")],
     output: Annotated[str, typer.Option("--output", "-o")] = "json",
+    env: EnvOption = None,
 ) -> None:
     """Cancela un pending action propio."""
-    _, client = setup_client()
+    _, client = setup_client(env=env)
     with client:
         try:
             _, body = client.post(f"/api/cli-odoo/pending/{pending_id}/cancel")

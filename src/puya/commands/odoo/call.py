@@ -6,7 +6,7 @@ from typing import Annotated
 
 import typer
 
-from puya.commands._helpers import handle_api_error, parse_json, setup_client
+from puya.commands._helpers import EnvOption, handle_api_error, parse_json, setup_client
 from puya.lib.client import PuyaApiError
 from puya.lib.output import emit
 
@@ -24,13 +24,14 @@ def call_command(
         str | None, typer.Option("--reason", "-r", help="Razón")
     ] = None,
     output: Annotated[str, typer.Option("--output", "-o")] = "json",
+    env: EnvOption = None,
 ) -> None:
     """Crea pending action de execute con approval requerido (exit 3).
 
     Convención: args[0] (si es lista) se considera la lista de ids
     afectados, igual que execute_kw clásico de Odoo.
     """
-    _, client = setup_client()
+    _, client = setup_client(env=env)
     args_list = parse_json("args", args)
     kwargs_dict = parse_json("kwargs", kwargs)
     if not isinstance(args_list, list):
