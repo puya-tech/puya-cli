@@ -11,7 +11,7 @@ from typing import Annotated, Optional
 
 import typer
 
-from puya.commands._helpers import handle_api_error, setup_client
+from puya.commands._helpers import EnvOption, handle_api_error, setup_client
 from puya.lib.client import PuyaApiError
 from puya.lib.output import emit
 
@@ -22,9 +22,10 @@ def pending_command(
         typer.Argument(help="ID del pending. Si se omite, lista todos."),
     ] = None,
     output: Annotated[str, typer.Option("--output", "-o")] = "json",
+    env: EnvOption = None,
 ) -> None:
     """Lista pendings o muestra el detalle de uno (con resultados si aplica)."""
-    _, client = setup_client()
+    _, client = setup_client(env=env)
     with client:
         try:
             if pending_id is None:

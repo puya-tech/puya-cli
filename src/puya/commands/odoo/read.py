@@ -6,7 +6,7 @@ from typing import Annotated
 
 import typer
 
-from puya.commands._helpers import handle_api_error, parse_ids, setup_client
+from puya.commands._helpers import EnvOption, handle_api_error, parse_ids, setup_client
 from puya.lib.client import PuyaApiError
 from puya.lib.output import emit
 
@@ -19,9 +19,10 @@ def read_command(
         typer.Option("--fields", "-f", help="Campos separados por coma. Default: id, display_name."),
     ] = None,
     output: Annotated[str, typer.Option("--output", "-o")] = "json",
+    env: EnvOption = None,
 ) -> None:
     """read via /api/cli-odoo/read."""
-    _, client = setup_client()
+    _, client = setup_client(env=env)
     id_list = parse_ids(ids)
     field_list = (
         [f.strip() for f in fields.split(",")] if fields else ["id", "display_name"]

@@ -55,10 +55,17 @@ class PuyaApiError(Exception):
 class PuyaClient:
     def __init__(self, cfg: Config, *, timeout: float = 30.0):
         self.cfg = cfg
+        headers: dict[str, str] = {"Authorization": f"Bearer {cfg.api_key}"}
+        # Validación defensiva server-side: si el env elegido por el cliente
+        # no matchea el target_env de la api_key, puya-chat responde 400.
+        # Solo se manda cuando el cliente eligió un env explícito (no en
+        # modo legacy single-key, donde target_env queda None).
+        if cfg.target_env:
+            headers["X-Puya-Requested-Env"] = cfg.target_env
         self._http = httpx.Client(
             base_url=cfg.base_url,
             timeout=timeout,
-            headers={"Authorization": f"Bearer {cfg.api_key}"},
+            headers=headers,
         )
 
     def __enter__(self) -> "PuyaClient":

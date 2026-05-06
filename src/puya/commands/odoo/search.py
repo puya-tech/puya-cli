@@ -6,7 +6,7 @@ from typing import Annotated
 
 import typer
 
-from puya.commands._helpers import handle_api_error, parse_json, setup_client
+from puya.commands._helpers import EnvOption, handle_api_error, parse_json, setup_client
 from puya.lib.client import PuyaApiError
 from puya.lib.output import emit
 
@@ -37,9 +37,10 @@ def search_command(
     output: Annotated[
         str, typer.Option("--output", "-o", help="Formato: table | json | raw.")
     ] = "json",
+    env: EnvOption = None,
 ) -> None:
     """search_read via /api/cli-odoo/search."""
-    _, client = setup_client()
+    _, client = setup_client(env=env)
 
     domain_parsed = parse_json("domain", domain)
     field_list = [f.strip() for f in fields.split(",")] if fields else ["id", "display_name"]

@@ -6,7 +6,7 @@ from typing import Annotated
 
 import typer
 
-from puya.commands._helpers import handle_api_error, parse_json, setup_client
+from puya.commands._helpers import EnvOption, handle_api_error, parse_json, setup_client
 from puya.lib.client import PuyaApiError
 from puya.lib.output import emit
 
@@ -17,9 +17,10 @@ def count_command(
         str, typer.Option("--domain", "-d", help="Dominio JSON. Default: [].")
     ] = "[]",
     output: Annotated[str, typer.Option("--output", "-o")] = "json",
+    env: EnvOption = None,
 ) -> None:
     """search_count via /api/cli-odoo/count."""
-    _, client = setup_client()
+    _, client = setup_client(env=env)
     domain_parsed = parse_json("domain", domain)
 
     with client:

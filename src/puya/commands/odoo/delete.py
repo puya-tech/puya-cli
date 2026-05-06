@@ -6,7 +6,7 @@ from typing import Annotated
 
 import typer
 
-from puya.commands._helpers import handle_api_error, parse_ids, setup_client
+from puya.commands._helpers import EnvOption, handle_api_error, parse_ids, setup_client
 from puya.lib.client import PuyaApiError
 from puya.lib.output import emit
 
@@ -21,9 +21,10 @@ def delete_command(
         ),
     ],
     output: Annotated[str, typer.Option("--output", "-o")] = "json",
+    env: EnvOption = None,
 ) -> None:
     """Crea pending action de unlink con approval requerido (exit 3)."""
-    _, client = setup_client()
+    _, client = setup_client(env=env)
     id_list = parse_ids(ids)
 
     with client:

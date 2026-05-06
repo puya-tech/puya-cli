@@ -3,16 +3,37 @@
 from __future__ import annotations
 
 import json
+from typing import Annotated
+
 import typer
 
 from puya.lib.client import PuyaApiError, PuyaClient
 from puya.lib.config import Config, load_config, validate_config
 
 
-def setup_client() -> tuple[Config, PuyaClient]:
-    """Carga config + valida + abre cliente HTTP. Sale con código 1 si falta config."""
-    cfg = load_config()
-    err = validate_config(cfg)
+# Anotación reusable: cada subcomando expone --env para elegir staging vs
+# production sin tocar las env vars en runtime. Si no se pasa, la
+# resolución cae a PUYA_TARGET_ENV (default), keys únicas seteadas, o
+# legacy PUYA_API_KEY. Ver `puya.lib.config.load_config` para el orden.
+EnvOption = Annotated[
+    str | None,
+    typer.Option(
+        "--env",
+        help="Entorno a targetear: staging | production (alias 'prod'). "
+        "Override del default PUYA_TARGET_ENV.",
+        show_default=False,
+    ),
+]
+
+
+def setup_client(env: str | None = None) -> tuple[Config, PuyaClient]:
+    """Carga config + valida + abre cliente HTTP.
+
+    `env` es el override de la flag `--env` del subcomando (si vino).
+    Sale con código 1 si la config es inválida.
+    """
+    cfg = load_config(env_override=env)
+    err = validate_config(cfg, env_override=env)
     if err:
         typer.echo(f"error: {err}", err=True)
         raise typer.Exit(code=1)
