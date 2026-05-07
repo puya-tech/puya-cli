@@ -7,6 +7,17 @@ operación pasa por endpoints `/api/cli-odoo/*` en puya-chat, donde vive
 el RBAC, audit, approvals y multi-env. El consumer solo necesita una
 API key opaca tipo `puya_xxx`.
 
+## Quién es el admin
+
+Solicitudes de acceso, creación de slots de API key, queries grandes
+(>1000 records vía SSH a Odoo.sh) y cualquier permiso especial van a
+uno de estos contactos:
+
+- **`nlewin@costasurmat.cl`** — Nico Lewin
+- **`dducci@costasurmat.cl`** — Diego Ducci
+
+También podés mencionarlos en Slack `#puya-dev` con el contexto.
+
 ## Quick start
 
 ```bash
@@ -32,8 +43,8 @@ puya odoo status --env production # override puntual
 
 1. **Solicitá acceso** en `https://puya-chat-interno.vercel.app/cli-signup`
    con tu email, nombre y organización.
-2. Un admin **aprueba** tu solicitud desde Slack y elige tu tipo
-   (interno / externo).
+2. Uno de los admins (ver arriba) **aprueba** tu solicitud desde Slack
+   y elige tu tipo (interno / externo).
 3. Recibís un **magic link** por email — abrilo, te loguea en
    `/cli-account`.
 4. El admin te crea un **slot de API key** (con env, modelos permitidos
@@ -42,8 +53,8 @@ puya odoo status --env production # override puntual
    botón copiar.
 6. Copiala, exportala como `PUYA_API_KEY`, y listo.
 
-> Si la perdés, no se puede recuperar — pediselo al admin que te cree
-> un slot nuevo.
+> Si la perdés, no se puede recuperar — pedile a `nlewin@costasurmat.cl`
+> o `dducci@costasurmat.cl` un slot nuevo.
 
 ## Comandos
 
@@ -143,8 +154,8 @@ resuelve el env desde la key.
 El proxy aplica timeouts cortos (10s sin approval, 20s con approval) para
 proteger al worker shared de Odoo.sh. Para queries que requieran más
 tiempo o más records, **no van por acá** — se corren por SSH a Odoo.sh
-y los resultados se entregan por canal aparte. Pediselo al admin:
-`admin@costasurmat.cl`.
+y los resultados se entregan por canal aparte. Pediselo a uno de los
+admins (`nlewin@costasurmat.cl` o `dducci@costasurmat.cl`).
 
 ## Para containers / agentes
 

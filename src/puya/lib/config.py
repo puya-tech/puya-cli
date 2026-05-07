@@ -141,7 +141,8 @@ def validate_config(cfg: Config, env_override: str | None = None) -> str | None:
             "  Single-env (legacy):\n"
             "    export PUYA_API_KEY=puya_xxx\n"
             "  Las keys se materializan desde /cli-account (botón 'Generar mi key').\n"
-            "  Si las perdés, no se recuperan — pedile al admin un slot nuevo.\n"
+            "  Si las perdés, no se recuperan — pediselo a un admin\n"
+            "  (nlewin@costasurmat.cl o dducci@costasurmat.cl) un slot nuevo.\n"
             "  Verificá con: puya odoo status"
         )
 
