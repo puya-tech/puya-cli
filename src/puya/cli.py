@@ -11,6 +11,7 @@ import typer
 
 from puya import __version__
 from puya.commands.odoo import app as odoo_app
+from puya.commands.tool import app as tool_app
 
 app = typer.Typer(
     name="puya",
@@ -22,6 +23,7 @@ app = typer.Typer(
 
 # ── Subcomandos por dominio ─────────────────────────────────
 app.add_typer(odoo_app, name="odoo", help="Operaciones contra Odoo via puya-chat proxy.")
+app.add_typer(tool_app, name="tool", help="Tools custom registradas server-side.")
 
 
 @app.command()
