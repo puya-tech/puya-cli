@@ -6,7 +6,13 @@ from typing import Annotated
 
 import typer
 
-from puya.commands._helpers import EnvOption, handle_api_error, parse_json, setup_client
+from puya.commands._helpers import (
+    EnvOption,
+    SessionIdOption,
+    handle_api_error,
+    parse_json,
+    setup_client,
+)
 from puya.lib.client import PuyaApiError
 from puya.lib.output import emit
 
@@ -25,6 +31,7 @@ def call_command(
     ] = None,
     output: Annotated[str, typer.Option("--output", "-o")] = "json",
     env: EnvOption = None,
+    session_id: SessionIdOption = None,
 ) -> None:
     """Crea pending action de execute con approval requerido (exit 3).
 
@@ -54,6 +61,8 @@ def call_command(
     }
     if reason:
         payload["reason"] = reason
+    if session_id:
+        payload["session_id"] = session_id
 
     with client:
         try:

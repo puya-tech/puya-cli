@@ -26,6 +26,25 @@ EnvOption = Annotated[
 ]
 
 
+# Anotación reusable para mutations (write/create/delete/call). Cuando un
+# agente (Puyol vía OpenCode) ejecuta una mutación, pasa su agent_session_id
+# para que el backend lo persista en `odoo_pending_actions.details`. Después,
+# cuando el admin aprueba/rechaza/expira, puya-chat puede notificar de vuelta
+# al canal del agente (DM Discuss, Slack thread, chatter del record).
+#
+# Si no viene, el flujo igual funciona — solo no hay callback al agente.
+SessionIdOption = Annotated[
+    str | None,
+    typer.Option(
+        "--session-id",
+        help="UUID del agent_session que dispara este pending (uso interno "
+        "de agentes Puyol). Sin esto, no se notifica al agente cuando el "
+        "admin aprueba/rechaza en Slack.",
+        show_default=False,
+    ),
+]
+
+
 def setup_client(env: str | None = None) -> tuple[Config, PuyaClient]:
     """Carga config + valida + abre cliente HTTP.
 
