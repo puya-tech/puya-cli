@@ -1,6 +1,6 @@
 [project]
 name = "puya"
-version = "1.2.0"
+version = "1.3.0"
 description = "Puya Tech CLI: thin HTTP client al CLI proxy de puya-chat (consumer-side)"
 readme = "README.md"
 authors = [
