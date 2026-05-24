@@ -80,9 +80,7 @@ def _render_table(data: dict[str, Any]) -> None:
         mode = k.get("cli_mode") or "—"
         state = _state_label(bool(k.get("active")), k.get("generated_at"))
         env_color = "red" if env == "production" else "yellow"
-        state_color = {"active": "green", "pending": "yellow", "revoked": "dim"}.get(
-            state, "white"
-        )
+        state_color = {"active": "green", "pending": "yellow", "revoked": "dim"}.get(state, "white")
         table.add_row(
             k.get("label", ""),
             f"[{env_color}]{env}[/{env_color}]",

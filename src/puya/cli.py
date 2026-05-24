@@ -26,7 +26,9 @@ app = typer.Typer(
 # ── Subcomandos por dominio ─────────────────────────────────
 app.add_typer(odoo_app, name="odoo", help="Operaciones contra Odoo via puya-chat proxy.")
 app.add_typer(tool_app, name="tool", help="Tools custom registradas server-side.")
-app.add_typer(skills_app, name="skills", help="Skills procedimentales (list / install / update / etc).")
+app.add_typer(
+    skills_app, name="skills", help="Skills procedimentales (list / install / update / etc)."
+)
 
 # ── Comandos top-level ──────────────────────────────────────
 app.command(name="account", help="Info de mi consumer + listado de slots.")(account_command)

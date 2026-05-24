@@ -26,9 +26,7 @@ def call_command(
     kwargs: Annotated[
         str, typer.Option("--kwargs", help="Kwargs JSON, ej: '{\"context\":{...}}'.")
     ] = "{}",
-    reason: Annotated[
-        str | None, typer.Option("--reason", "-r", help="Razón")
-    ] = None,
+    reason: Annotated[str | None, typer.Option("--reason", "-r", help="Razón")] = None,
     output: Annotated[str, typer.Option("--output", "-o")] = "json",
     env: EnvOption = None,
     session_id: SessionIdOption = None,

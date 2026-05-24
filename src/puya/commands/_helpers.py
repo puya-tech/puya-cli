@@ -10,7 +10,6 @@ import typer
 from puya.lib.client import PuyaApiError, PuyaClient
 from puya.lib.config import Config, load_config, validate_config
 
-
 # Anotación reusable: cada subcomando expone --env para elegir staging vs
 # production sin tocar las env vars en runtime. Si no se pasa, la
 # resolución cae a PUYA_TARGET_ENV (default), keys únicas seteadas, o

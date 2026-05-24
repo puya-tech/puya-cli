@@ -14,8 +14,7 @@ from puya.cli import app
 from puya.lib.client import _exit_code_for
 from puya.lib.config import Config, validate_config
 
-
-runner = CliRunner(mix_stderr=False)
+runner = CliRunner()
 
 
 def test_version_command():
@@ -28,7 +27,19 @@ def test_help_lists_odoo_subcommands():
     result = runner.invoke(app, ["odoo", "--help"])
     assert result.exit_code == 0
     out = result.stdout
-    for cmd in ["status", "search", "read", "count", "fields", "write", "create", "delete", "call", "pending", "cancel"]:
+    for cmd in [
+        "status",
+        "search",
+        "read",
+        "count",
+        "fields",
+        "write",
+        "create",
+        "delete",
+        "call",
+        "pending",
+        "cancel",
+    ]:
         assert cmd in out
 
 
@@ -62,15 +73,15 @@ def test_exit_code_mapping(status: int, expected: int):
 
 
 def test_validate_config_rejects_empty_key():
-    err = validate_config(Config(base_url="https://x", api_key=""))
+    err = validate_config(Config(base_url="https://x", api_key="", target_env=None))
     assert err and "PUYA_API_KEY" in err
 
 
 def test_validate_config_rejects_invalid_prefix():
-    err = validate_config(Config(base_url="https://x", api_key="not_a_puya_key"))
+    err = validate_config(Config(base_url="https://x", api_key="not_a_puya_key", target_env=None))
     assert err and "puya_" in err
 
 
 def test_validate_config_accepts_well_formed():
-    err = validate_config(Config(base_url="https://x", api_key="puya_abc123"))
+    err = validate_config(Config(base_url="https://x", api_key="puya_abc123", target_env=None))
     assert err is None
