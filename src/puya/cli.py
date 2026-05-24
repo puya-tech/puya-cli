@@ -11,6 +11,7 @@ import typer
 
 from puya import __version__
 from puya.commands.account import account_command
+from puya.commands.doctor import doctor_command
 from puya.commands.odoo import app as odoo_app
 from puya.commands.schema import schema_command
 from puya.commands.skills import app as skills_app
@@ -37,6 +38,10 @@ app.command(
     name="schema",
     help="Catálogo completo de comandos/flags como JSON (sin red, para agentes).",
 )(schema_command)
+app.command(
+    name="doctor",
+    help="Diagnóstico del setup local (versiones, env vars, resolución, conectividad).",
+)(doctor_command)
 
 
 @app.command()
