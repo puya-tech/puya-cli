@@ -6,60 +6,38 @@ A partir de v1.0 el CLI **no se conecta a Odoo directamente**. Toda
 operación pasa por el proxy en puya-chat, donde vive el RBAC, audit,
 approvals y multi-env. El consumer solo necesita una API key.
 
-## Instalar
+## Setup
+
+Requiere Python ≥3.10 en cualquier OS (macOS, Linux, WSL, Windows).
 
 ```bash
 pipx install git+https://github.com/puya-tech/puya-cli.git
+puya version
 ```
 
-Requiere Python ≥3.10.
+Pedile a un admin (`nlewin@costasurmat.cl` o `dducci@costasurmat.cl`)
+una key por entorno y materializala en
+https://puya-chat-interno.vercel.app/cli-account (se ve plana **una sola
+vez**).
 
-## Configurar
-
-Necesitás una API key emitida por puya-chat. Pedila al admin de tu
-organización (no se obtiene self-service): te van a crear un slot y vas
-a poder materializar la key plana **una sola vez** en `/cli-account`.
-
-Después exportá:
+Setear las env vars de la manera que prefieras en tu shell — ver
+[`.env.example`](.env.example) para la lista completa:
 
 ```bash
 export PUYA_BASE_URL=https://puya-chat-interno.vercel.app
-export PUYA_API_KEY=puya_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+export PUYA_API_KEY_STAGING=puya_...
+export PUYA_API_KEY_PROD=puya_...
+export PUYA_TARGET_ENV=staging   # default cuando hay ambas keys cargadas
 ```
 
-Verificá que arrancó bien:
+Verificá:
 
 ```bash
 puya odoo status
 ```
 
-Si responde con tu consumer, api_key, modelos permitidos y endpoints
-custom habilitados, estás listo. Si no, el mensaje de error indica qué
-falta.
-
-## Comandos disponibles
-
-```bash
-puya --help                            # raíz: lista subcomandos
-puya odoo --help                       # operaciones contra Odoo
-puya tool --help                       # endpoints custom registrados
-puya version
-```
-
-Cada subcomando tiene su propio `--help` con flags, formato y ejemplos.
-Para descubrir qué endpoints custom puede invocar tu key:
-
-```bash
-puya tool list                         # devuelve cada slug con su JSON Schema
-puya tool call <slug> --json '<body>'  # invoca
-```
-
-## Multi-environment
-
-Cada API key apunta a un solo entorno (`staging` o `production`, fijo
-server-side). El CLI soporta cargar dos keys a la vez y elegir por
-invocación con `--env`. Detalle: `puya odoo status --help` y el bloque
-multi-env del [AGENTS.md](AGENTS.md).
+Si devuelve tu consumer + modelos permitidos, está listo. A partir de
+acá descubrís todo con `puya --help` y los `--help` de cada subcomando.
 
 ## Exit codes
 
