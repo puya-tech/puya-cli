@@ -50,7 +50,24 @@ def call_command(
         try:
             _, response = client.post(path, json=body_json)
         except PuyaApiError as e:
+            # 404 sin error body en la respuesta = slug desconocido y el
+            # server no nos dio contexto (típicamente Next.js auto-404).
+            # Inyectamos el hint del lado cliente para que el agente sepa
+            # qué hacer. Si el server eventualmente devuelve `{"error": ...}`
+            # con su propio hint, ese mensaje gana y este branch no aplica.
+            if e.status == 404 and not _has_error_body(e.body):
+                typer.echo(
+                    f"error: tool '{slug}' not found. "
+                    f"Probá `puya tool list` para ver los slugs habilitados para tu key.",
+                    err=True,
+                )
+                raise typer.Exit(code=1) from e
             handle_api_error(e)
             return
 
     emit(response, fmt=output)
+
+
+def _has_error_body(body: object) -> bool:
+    """True si el server nos dio un mensaje útil que vale la pena mostrar."""
+    return isinstance(body, dict) and bool(body.get("error"))
