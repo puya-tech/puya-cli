@@ -21,6 +21,7 @@ from typing import Any
 import httpx
 
 from puya.lib.config import Config
+from puya.lib.output import emit_hint
 
 
 # Códigos HTTP → exit codes que matchea el contrato del CLI viejo (Puyol los usa)
@@ -49,7 +50,7 @@ class PuyaApiError(Exception):
 
 
 class PuyaClient:
-    def __init__(self, cfg: Config, *, timeout: float = 30.0):
+    def __init__(self, cfg: Config, *, timeout: float | None = None):
         self.cfg = cfg
         headers: dict[str, str] = {"Authorization": f"Bearer {cfg.api_key}"}
         # Validación defensiva server-side: si el env elegido por el cliente
@@ -60,7 +61,7 @@ class PuyaClient:
             headers["X-Puya-Requested-Env"] = cfg.target_env
         self._http = httpx.Client(
             base_url=cfg.base_url,
-            timeout=timeout,
+            timeout=timeout if timeout is not None else cfg.timeout,
             headers=headers,
         )
 
@@ -91,6 +92,15 @@ class PuyaClient:
             body = resp.json()
         except ValueError:
             body = resp.text
+
+        # Hints laterales — stderr, no impactan stdout que ve el LLM.
+        # El wrapper del agente (auth-proxy Puyol / Inngest) los strippea
+        # antes de pasar el output al modelo. Ver lib/output.emit_hint.
+        req_id = resp.headers.get("x-request-id")
+        if req_id:
+            emit_hint("correlation_id", req_id)
+        if resp.status_code == 202 and isinstance(body, dict) and body.get("pending_id"):
+            emit_hint("pending_id", body["pending_id"])
 
         if resp.status_code == 202:
             return resp.status_code, body

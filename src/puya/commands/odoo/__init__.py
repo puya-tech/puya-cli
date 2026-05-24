@@ -11,7 +11,6 @@ import typer
 
 from puya.commands.odoo.call import call_command
 from puya.commands.odoo.cancel import cancel_command
-from puya.commands.odoo.confirm import confirm_command
 from puya.commands.odoo.count import count_command
 from puya.commands.odoo.create import create_command
 from puya.commands.odoo.delete import delete_command
@@ -41,7 +40,7 @@ app.command(name="create")(create_command)
 app.command(name="delete")(delete_command)
 app.command(name="call")(call_command)
 
-# Pending lifecycle (consumer self-service: list + cancel; confirm es server-side)
-app.command(name="confirm")(confirm_command)
+# Pending lifecycle (consumer self-service: list + cancel).
+# La aprobación NO es self-service: vive en el flujo Slack del admin.
 app.command(name="cancel")(cancel_command)
 app.command(name="pending")(pending_command)
