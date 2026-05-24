@@ -5,10 +5,15 @@ Wrapper fino sobre httpx con:
   - Mapeo de exit codes:
       0 = OK (200/201/204)
       1 = error de input / RBAC (400, 403, 404, 409, 422, 429)
-      2 = error externo / Odoo (500, 502, 504)
+      2 = Click/usage error (comando inexistente, missing option) — NO retry
       3 = approval pendiente (202)
       4 = auth — key inválida / vencida / no autorizada (401)
+      5 = error externo / network (5xx server + RequestError) — retry OK
   - Mensajes de error legibles
+
+Nota: exit 2 es de Click (usage), no nuestro. Si lo confundís con
+"server caído" vas a loopear en typos. Separamos network → 5 para
+desambiguar.
 
 Cada comando del CLI invoca uno o más métodos de este cliente. El cliente
 no conoce de RBAC ni de Odoo — eso lo decide puya-chat.
@@ -35,10 +40,11 @@ _RETRYABLE_STATUS = (500, 502, 503, 504)
 
 # Códigos HTTP → exit codes para callers (agentes / scripts).
 # Diseño: que el caller pueda decidir remediación sin parsear strings.
-#   exit 1: tu input/permiso es el problema → corregilo y reintentá.
-#   exit 2: server lejano caído → reintentar más tarde / escalar.
+#   exit 1: tu input/permiso es el problema → corregilo, NO retry ciego.
+#   exit 2: usage error de Click (typo de comando, missing option) → corregir invocación.
 #   exit 3: pending — esperar approval, NO retry.
 #   exit 4: tu key es el problema → rotarla o re-materializarla (admin).
+#   exit 5: server lejano caído / red → retry más tarde / escalar.
 def _exit_code_for(status: int) -> int:
     if 200 <= status < 300:
         if status == 202:
@@ -49,7 +55,7 @@ def _exit_code_for(status: int) -> int:
     if status in (400, 403, 404, 409, 422, 429):
         return 1
     if status in (500, 502, 503, 504):
-        return 2
+        return 5
     return 1
 
 
@@ -124,7 +130,7 @@ class PuyaClient:
 
         if resp is None:
             sys.stderr.write(f"error: no pude conectar a {self.cfg.base_url}: {last_error}\n")
-            sys.exit(2)
+            sys.exit(5)
 
         body: Any
         try:

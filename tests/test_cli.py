@@ -73,9 +73,9 @@ def test_status_without_api_key_fails_with_exit_1(monkeypatch):
         (404, 1),
         (409, 1),
         (429, 1),
-        (500, 2),
-        (502, 2),
-        (504, 2),
+        (500, 5),
+        (502, 5),
+        (504, 5),
     ],
 )
 def test_exit_code_mapping(status: int, expected: int):

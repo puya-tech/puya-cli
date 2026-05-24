@@ -45,9 +45,10 @@ acá descubrís todo con `puya --help` y los `--help` de cada subcomando.
 |--------|-------------|
 | 0 | OK (200 / 201) |
 | 1 | Error de input o RBAC (400, 403, 404, 409, 422, 429) |
-| 2 | Error externo: puya-chat caído u Odoo timeout (5xx) |
+| 2 | Usage error de Click: comando inexistente, missing option, valor de tipo inválido — corregir invocación |
 | 3 | Approval pendiente (202) — la mutación queda en cola y se ejecuta cuando un admin apruebe |
 | 4 | Auth: key inválida, vencida o no autorizada (401) — rotar key o pedir nueva al admin |
+| 5 | Server lejano caído / network: puya-chat o Odoo timeout (5xx + RequestError) — el CLI ya reintentó 1 vez para GETs, si llegaste a 5 escalar |
 
 ## Para agentes / scripts
 
