@@ -36,10 +36,8 @@ from rich.table import Table
 from puya.commands._helpers import EnvOption
 from puya.commands.skills._api import (
     RemoteSkill,
-    as_json_list,
     fetch_remote_skills,
     fetch_skill_raw,
-    find_remote,
 )
 from puya.commands.skills.state import (
     InstalledSkill,
@@ -48,7 +46,6 @@ from puya.commands.skills.state import (
     load_state,
     record_install,
     remove_record,
-    STATE_FILE,
 )
 from puya.lib.client import PuyaApiError, PuyaClient
 from puya.lib.config import load_config, validate_config
@@ -218,7 +215,7 @@ def list_command(
             if st == "orphan":
                 table.add_row(
                     slug,
-                    f"[dim]instalada localmente, no en server[/dim]",
+                    "[dim]instalada localmente, no en server[/dim]",
                     "—",
                     f"[{_color_state(st)}]{_emoji_state(st)} {st}[/{_color_state(st)}]",
                 )
@@ -283,9 +280,7 @@ def install_command(
         except PuyaApiError as e:
             typer.echo(f"error: {e}", err=True)
             raise typer.Exit(code=e.exit_code) from e
-    typer.echo(
-        f"✅ installed {slug} → {installed.path}\n   hash={installed.content_hash}"
-    )
+    typer.echo(f"✅ installed {slug} → {installed.path}\n   hash={installed.content_hash}")
 
 
 # ───────────────────────────────────────────────────────────
@@ -379,7 +374,9 @@ def check_command(
 
 @app.command("update")
 def update_command(
-    slug: Annotated[str | None, typer.Argument(help="Slug específico (default: todas outdated).")] = None,
+    slug: Annotated[
+        str | None, typer.Argument(help="Slug específico (default: todas outdated).")
+    ] = None,
     all_flag: Annotated[
         bool,
         typer.Option("--all", help="Además de outdated, instala available y borra orphan."),
@@ -396,7 +393,6 @@ def update_command(
 
         installed = load_state()
         states = _compute_states(remote, installed)
-        remote_by_slug = {r.slug: r for r in remote}
 
         targets: list[tuple[str, str]] = []  # (slug, state)
         if slug:
@@ -406,9 +402,7 @@ def update_command(
             targets.append((slug, states[slug]))
         else:
             for s, st in states.items():
-                if st == "outdated":
-                    targets.append((s, st))
-                elif all_flag and st in ("available", "orphan"):
+                if st == "outdated" or all_flag and st in ("available", "orphan"):
                     targets.append((s, st))
 
         if not targets:
@@ -419,9 +413,7 @@ def update_command(
         for s, st in targets:
             if st in ("outdated", "available"):
                 local = installed.get(s)
-                dest_dir = (
-                    Path(local.path).parent.parent if local else default_install_dir()
-                )
+                dest_dir = Path(local.path).parent.parent if local else default_install_dir()
                 try:
                     rec = _install_one(client, s, dest_dir)
                 except PuyaApiError as e:
@@ -471,7 +463,9 @@ def diff_command(
     installed = load_state()
     local = installed.get(slug)
     if not local:
-        typer.echo(f"error: '{slug}' no está instalada localmente (puya skills list para ver)", err=True)
+        typer.echo(
+            f"error: '{slug}' no está instalada localmente (puya skills list para ver)", err=True
+        )
         raise typer.Exit(code=1)
     try:
         local_text = Path(local.path).read_text(encoding="utf-8")

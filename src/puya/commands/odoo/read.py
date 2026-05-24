@@ -16,7 +16,9 @@ def read_command(
     ids: Annotated[str, typer.Argument(help="IDs separados por coma o JSON list")],
     fields: Annotated[
         str | None,
-        typer.Option("--fields", "-f", help="Campos separados por coma. Default: id, display_name."),
+        typer.Option(
+            "--fields", "-f", help="Campos separados por coma. Default: id, display_name."
+        ),
     ] = None,
     output: Annotated[str, typer.Option("--output", "-o")] = "json",
     env: EnvOption = None,
@@ -24,9 +26,7 @@ def read_command(
     """read via /api/cli-odoo/read."""
     _, client = setup_client(env=env)
     id_list = parse_ids(ids)
-    field_list = (
-        [f.strip() for f in fields.split(",")] if fields else ["id", "display_name"]
-    )
+    field_list = [f.strip() for f in fields.split(",")] if fields else ["id", "display_name"]
 
     with client:
         try:

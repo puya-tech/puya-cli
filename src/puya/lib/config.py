@@ -38,7 +38,6 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass
 
-
 DEFAULT_BASE_URL = "https://puya-chat-interno.vercel.app"
 VALID_ENVS = ("staging", "production")
 ENV_TO_VAR = {

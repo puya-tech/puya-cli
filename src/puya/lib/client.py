@@ -43,11 +43,7 @@ class PuyaApiError(Exception):
     def __init__(self, status: int, body: Any):
         self.status = status
         self.body = body
-        msg: str
-        if isinstance(body, dict) and "error" in body:
-            msg = str(body["error"])
-        else:
-            msg = f"HTTP {status}"
+        msg = str(body["error"]) if isinstance(body, dict) and "error" in body else f"HTTP {status}"
         super().__init__(msg)
         self.exit_code = _exit_code_for(status)
 
@@ -68,7 +64,7 @@ class PuyaClient:
             headers=headers,
         )
 
-    def __enter__(self) -> "PuyaClient":
+    def __enter__(self) -> PuyaClient:
         return self
 
     def __exit__(self, *_exc) -> None:
