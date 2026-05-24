@@ -12,6 +12,7 @@ import typer
 from puya import __version__
 from puya.commands.account import account_command
 from puya.commands.odoo import app as odoo_app
+from puya.commands.schema import schema_command
 from puya.commands.skills import app as skills_app
 from puya.commands.tool import app as tool_app
 
@@ -32,6 +33,10 @@ app.add_typer(
 
 # ── Comandos top-level ──────────────────────────────────────
 app.command(name="account", help="Info de mi consumer + listado de slots.")(account_command)
+app.command(
+    name="schema",
+    help="Catálogo completo de comandos/flags como JSON (sin red, para agentes).",
+)(schema_command)
 
 
 @app.command()

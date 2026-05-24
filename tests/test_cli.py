@@ -95,3 +95,65 @@ def test_validate_config_rejects_invalid_prefix():
 def test_validate_config_accepts_well_formed():
     err = validate_config(Config(base_url="https://x", api_key="puya_abc123", target_env=None))
     assert err is None
+
+
+def test_schema_command_emits_valid_json_catalog():
+    """`puya schema` debe emitir JSON parseable con el árbol completo."""
+    import json
+
+    result = runner.invoke(app, ["schema"])
+    assert result.exit_code == 0
+
+    payload = json.loads(result.stdout)
+    assert payload["schema_version"] == "1"
+    assert payload["cli_version"] == __version__
+
+    root = payload["command"]
+    assert root["name"] == "puya"
+    subs = root["subcommands"]
+    for expected in ("account", "odoo", "schema", "skills", "tool", "version"):
+        assert expected in subs, f"falta top-level: {expected}"
+
+    odoo_subs = subs["odoo"]["subcommands"]
+    for expected in (
+        "status",
+        "search",
+        "read",
+        "count",
+        "fields",
+        "write",
+        "create",
+        "delete",
+        "call",
+        "pending",
+        "cancel",
+    ):
+        assert expected in odoo_subs, f"falta odoo subcommand: {expected}"
+    # `confirm` fue removido en #17 — el schema no debería listarlo.
+    assert "confirm" not in odoo_subs
+
+    write = odoo_subs["write"]
+    assert write["path"] == "puya odoo write"
+    params_by_name = {p["name"]: p for p in write["params"]}
+    assert params_by_name["model"]["kind"] == "argument"
+    assert params_by_name["model"]["required"] is True
+    assert params_by_name["values"]["kind"] == "option"
+    assert params_by_name["values"]["required"] is True
+    assert "--values" in params_by_name["values"]["flags"]
+
+
+def test_schema_command_does_not_touch_network(monkeypatch):
+    """schema debe ser puro offline — no debe hacer requests HTTP."""
+    import httpx
+
+    def boom(*_a, **_kw):
+        raise AssertionError("schema no debería hacer requests HTTP")
+
+    monkeypatch.setattr(httpx.Client, "request", boom)
+    monkeypatch.delenv("PUYA_API_KEY", raising=False)
+    monkeypatch.delenv("PUYA_API_KEY_STAGING", raising=False)
+    monkeypatch.delenv("PUYA_API_KEY_PROD", raising=False)
+
+    result = runner.invoke(app, ["schema"])
+    assert result.exit_code == 0
+    assert '"schema_version"' in result.stdout
