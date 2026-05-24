@@ -4,9 +4,10 @@ Wrapper fino sobre httpx con:
   - Bearer auth automático
   - Mapeo de exit codes:
       0 = OK (200/201/204)
-      1 = error de input (400, 403, 404, 409)
+      1 = error de input / RBAC (400, 403, 404, 409, 422, 429)
       2 = error externo / Odoo (500, 502, 504)
       3 = approval pendiente (202)
+      4 = auth — key inválida / vencida / no autorizada (401)
   - Mensajes de error legibles
 
 Cada comando del CLI invoca uno o más métodos de este cliente. El cliente
@@ -24,16 +25,20 @@ from puya.lib.config import Config
 from puya.lib.output import emit_hint
 
 
-# Códigos HTTP → exit codes que matchea el contrato del CLI viejo (Puyol los usa)
+# Códigos HTTP → exit codes para callers (agentes / scripts).
+# Diseño: que el caller pueda decidir remediación sin parsear strings.
+#   exit 1: tu input/permiso es el problema → corregilo y reintentá.
+#   exit 2: server lejano caído → reintentar más tarde / escalar.
+#   exit 3: pending — esperar approval, NO retry.
+#   exit 4: tu key es el problema → rotarla o re-materializarla (admin).
 def _exit_code_for(status: int) -> int:
     if 200 <= status < 300:
-        # 202 = approval_required → exit 3
         if status == 202:
             return 3
         return 0
+    if status == 401:
+        return 4
     if status in (400, 403, 404, 409, 422, 429):
-        return 1
-    if status in (401,):
         return 1
     if status in (500, 502, 503, 504):
         return 2
