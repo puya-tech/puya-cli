@@ -66,6 +66,24 @@ def parse_json(label: str, value: str) -> object:
         raise typer.Exit(code=1) from e
 
 
+def parse_domain(value: str) -> list:
+    """Parsea --domain validando que sea una lista Odoo.
+
+    Sin esto un agente puede mandar `-d '"foo"'` (JSON válido, no-list) y
+    el server lo trata como dominio vacío silenciosamente → results que no
+    matchean la intención. Fallar acá es más útil que dejar pasar.
+    """
+    parsed = parse_json("domain", value)
+    if not isinstance(parsed, list):
+        typer.echo(
+            f"error: --domain debe ser una lista Odoo (ej: '[]' o '[[\"x\",\"=\",1]]'), "
+            f"recibí: {type(parsed).__name__}",
+            err=True,
+        )
+        raise typer.Exit(code=1)
+    return parsed
+
+
 def parse_ids(value: str) -> list[int]:
     """Parsea ids como lista JSON o CSV de enteros."""
     s = value.strip()

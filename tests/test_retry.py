@@ -58,7 +58,7 @@ def test_get_500_twice_raises_after_retry():
     client = _client_with(handler)
     with pytest.raises(PuyaApiError) as exc:
         client.get("/api/cli-odoo/status")
-    assert exc.value.exit_code == 2
+    assert exc.value.exit_code == 5
     assert len(calls) == 2
 
 
@@ -73,7 +73,7 @@ def test_post_500_does_NOT_retry():
     client = _client_with(handler)
     with pytest.raises(PuyaApiError) as exc:
         client.post("/api/cli-odoo/write", json={"model": "x", "ids": [1], "values": {}})
-    assert exc.value.exit_code == 2
+    assert exc.value.exit_code == 5
     assert len(calls) == 1
 
 
@@ -93,8 +93,8 @@ def test_get_request_error_then_success_retries():
     assert len(calls) == 2
 
 
-def test_get_request_error_twice_exits_2(monkeypatch):
-    """Si ambas tentativas de GET dan RequestError, el cliente sale con exit 2."""
+def test_get_request_error_twice_exits_5(monkeypatch):
+    """Si ambas tentativas de GET dan RequestError, el cliente sale con exit 5."""
 
     def handler(_req):
         raise httpx.ConnectError("network down")
@@ -102,7 +102,7 @@ def test_get_request_error_twice_exits_2(monkeypatch):
     client = _client_with(handler)
     with pytest.raises(SystemExit) as exc:
         client.get("/api/cli-odoo/status")
-    assert exc.value.code == 2
+    assert exc.value.code == 5
 
 
 def test_get_400_does_NOT_retry():
