@@ -68,7 +68,7 @@ def test_status_without_api_key_fails_with_exit_1(monkeypatch):
         (201, 0),
         (202, 3),
         (400, 1),
-        (401, 1),
+        (401, 4),
         (403, 1),
         (404, 1),
         (409, 1),

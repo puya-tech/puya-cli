@@ -44,9 +44,10 @@ acá descubrís todo con `puya --help` y los `--help` de cada subcomando.
 | Código | Significado |
 |--------|-------------|
 | 0 | OK (200 / 201) |
-| 1 | Error de input, auth o RBAC (4xx) |
+| 1 | Error de input o RBAC (400, 403, 404, 409, 422, 429) |
 | 2 | Error externo: puya-chat caído u Odoo timeout (5xx) |
 | 3 | Approval pendiente (202) — la mutación queda en cola y se ejecuta cuando un admin apruebe |
+| 4 | Auth: key inválida, vencida o no autorizada (401) — rotar key o pedir nueva al admin |
 
 ## Para agentes / scripts
 
