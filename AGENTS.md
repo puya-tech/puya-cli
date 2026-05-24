@@ -215,7 +215,7 @@ Si los 3 pasan, el wiring está OK.
 | ---- | -------------------------------------------- | ------------------------------------------------------- |
 | 0    | OK                                           | seguir                                                  |
 | 1    | input mal formado, modelo no whitelist, RBAC (400/403/404/409/422/429) | leer el `error` del JSON, NO retry ciego  |
-| 2    | puya-chat caído u Odoo timeout (5xx)         | esperar y reintentar 1 vez; si persiste, escalar humano |
+| 2    | puya-chat caído u Odoo timeout (5xx)         | el CLI YA reintentó 1 vez para GETs antes de devolver exit 2. Si llegaste a 2, escalar humano. Para POST (mutations) no hay retry — el server tiene dedupe de pending actions pero el cliente no lo asume |
 | 3    | pending action creada                        | reportar `pending_id`, esperar approval — NO retry      |
 | 4    | auth — key inválida/vencida/no autorizada (401) | NO retry. Reportar al humano para que rotee la key o pida una nueva al admin |
 

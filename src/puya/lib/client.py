@@ -17,12 +17,20 @@ no conoce de RBAC ni de Odoo — eso lo decide puya-chat.
 from __future__ import annotations
 
 import sys
+import time
 from typing import Any
 
 import httpx
 
 from puya.lib.config import Config
 from puya.lib.output import emit_hint
+
+# Retry de UN intento extra para GETs (idempotentes) cuando el server
+# responde 5xx o el socket falla. NUNCA aplica a POST — las mutaciones
+# son exactly-once por construcción (pueden crear pending action que
+# después se aprueba).
+_RETRY_DELAY_SECONDS = 1.0
+_RETRYABLE_STATUS = (500, 502, 503, 504)
 
 
 # Códigos HTTP → exit codes para callers (agentes / scripts).
@@ -85,11 +93,37 @@ class PuyaClient:
     ) -> tuple[int, Any]:
         """Devuelve (status, body). Lanza PuyaApiError para 4xx/5xx, EXCEPTO
         202 que es approval_required y vuelve normal para que el caller lo
-        emita como JSON con exit 3."""
-        try:
-            resp = self._http.request(method, path, json=json)
-        except httpx.RequestError as e:
-            sys.stderr.write(f"error: no pude conectar a {self.cfg.base_url}: {e}\n")
+        emita como JSON con exit 3.
+
+        Reintenta UNA vez para GETs cuando hay RequestError o 5xx. Las
+        mutaciones (POST) nunca se reintentan — el server crea pending
+        actions con dedupe propia, pero el cliente no debe asumirlo.
+        """
+        is_idempotent = method.upper() == "GET"
+        max_attempts = 2 if is_idempotent else 1
+
+        resp: httpx.Response | None = None
+        last_error: httpx.RequestError | None = None
+        for attempt in range(max_attempts):
+            if attempt > 0:
+                time.sleep(_RETRY_DELAY_SECONDS)
+            try:
+                resp = self._http.request(method, path, json=json)
+            except httpx.RequestError as e:
+                last_error = e
+                resp = None
+                continue
+            # 5xx en GET → un retry más (si todavía nos quedan attempts).
+            if (
+                is_idempotent
+                and resp.status_code in _RETRYABLE_STATUS
+                and attempt < max_attempts - 1
+            ):
+                continue
+            break
+
+        if resp is None:
+            sys.stderr.write(f"error: no pude conectar a {self.cfg.base_url}: {last_error}\n")
             sys.exit(2)
 
         body: Any
