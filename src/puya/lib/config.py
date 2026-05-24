@@ -39,6 +39,7 @@ import os
 from dataclasses import dataclass
 
 DEFAULT_BASE_URL = "https://puya-chat-interno.vercel.app"
+DEFAULT_TIMEOUT = 30.0
 VALID_ENVS = ("staging", "production")
 ENV_TO_VAR = {
     "staging": "PUYA_API_KEY_STAGING",
@@ -53,6 +54,8 @@ class Config:
     # target_env: cuando se eligió por --env / PUYA_TARGET_ENV / única env disponible.
     # None cuando solo se usó PUYA_API_KEY legacy (server-side resuelve el env).
     target_env: str | None
+    # Timeout (segundos) para requests HTTP. Override con PUYA_TIMEOUT.
+    timeout: float = DEFAULT_TIMEOUT
 
 
 def _normalize_env(value: str | None) -> str | None:
@@ -67,12 +70,24 @@ def _normalize_env(value: str | None) -> str | None:
     return v  # devuelve tal cual para que validate_config lo rechace con mensaje claro
 
 
+def _parse_timeout(raw: str | None) -> float:
+    """Parsea PUYA_TIMEOUT con fallback al default. Valores inválidos se ignoran."""
+    if not raw:
+        return DEFAULT_TIMEOUT
+    try:
+        value = float(raw.strip())
+    except (TypeError, ValueError):
+        return DEFAULT_TIMEOUT
+    return value if value > 0 else DEFAULT_TIMEOUT
+
+
 def load_config(env_override: str | None = None) -> Config:
     """Resuelve la config efectiva.
 
     `env_override` viene de la flag --env. Si está, gana sobre PUYA_TARGET_ENV.
     """
     base_url = os.environ.get("PUYA_BASE_URL", "").strip().rstrip("/") or DEFAULT_BASE_URL
+    timeout = _parse_timeout(os.environ.get("PUYA_TIMEOUT"))
 
     staging_key = os.environ.get("PUYA_API_KEY_STAGING", "").strip()
     prod_key = os.environ.get("PUYA_API_KEY_PROD", "").strip()
@@ -97,7 +112,7 @@ def load_config(env_override: str | None = None) -> Config:
         # validate_config emita un error pidiendo --env / PUYA_TARGET_ENV.
         target_env, api_key = None, ""
 
-    return Config(base_url=base_url, api_key=api_key, target_env=target_env)
+    return Config(base_url=base_url, api_key=api_key, target_env=target_env, timeout=timeout)
 
 
 def validate_config(cfg: Config, env_override: str | None = None) -> str | None:

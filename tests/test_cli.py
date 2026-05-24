@@ -41,6 +41,16 @@ def test_help_lists_odoo_subcommands():
         "cancel",
     ]:
         assert cmd in out
+    # `confirm` fue removido: approvals son server-side (Slack del admin).
+    assert "confirm" not in out
+
+
+def test_confirm_command_no_longer_exists():
+    """`puya odoo confirm 123` debe fallar con 'No such command'."""
+    result = runner.invoke(app, ["odoo", "confirm", "123"])
+    assert result.exit_code != 0
+    out = result.stdout + (result.stderr or "")
+    assert "No such command" in out or "confirm" in out
 
 
 def test_status_without_api_key_fails_with_exit_1(monkeypatch):
