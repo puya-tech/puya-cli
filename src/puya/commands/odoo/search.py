@@ -40,6 +40,12 @@ def search_command(
     env: EnvOption = None,
 ) -> None:
     """search_read via /api/cli-odoo/search."""
+    if limit < 1:
+        typer.echo(
+            "error: --limit debe ser >= 1 (limit=0 en Odoo devuelve TODOS los records)", err=True
+        )
+        raise typer.Exit(code=1)
+
     _, client = setup_client(env=env)
 
     domain_parsed = parse_domain(domain)

@@ -18,6 +18,26 @@ from puya.lib.output import emit
 VALID_STATUSES = ("pending", "confirmed", "cancelled", "expired", "rejected")
 
 
+def _summarize_for_table(pendings: list) -> list[dict]:
+    """Extrae columnas clave para vista tabla legible."""
+    rows = []
+    for p in pendings:
+        details = p.get("details") or {}
+        rows.append(
+            {
+                "id": p.get("id"),
+                "status": p.get("status"),
+                "action": p.get("action"),
+                "model": p.get("model"),
+                "ids": p.get("record_ids") or [],
+                "reason": (details.get("reason") or "")[:40],
+                "env": details.get("target_env", ""),
+                "created": (p.get("created_at") or "")[:16],
+            }
+        )
+    return rows
+
+
 def pending_command(
     pending_id: Annotated[
         int | None,
@@ -52,7 +72,10 @@ def pending_command(
                         )
                     else:
                         pendings = [p for p in pendings if p.get("status") == s]
-                emit(pendings, fmt=output)
+                if output == "table":
+                    emit(_summarize_for_table(pendings), fmt="table")
+                else:
+                    emit(pendings, fmt=output)
             else:
                 _, body = client.get(f"/api/cli-odoo/pending/{pending_id}")
                 emit(body, fmt=output)

@@ -157,3 +157,17 @@ def test_schema_command_does_not_touch_network(monkeypatch):
     result = runner.invoke(app, ["schema"])
     assert result.exit_code == 0
     assert '"schema_version"' in result.stdout
+
+
+def test_search_limit_zero_rejected():
+    """limit=0 en Odoo devuelve todos los records — el CLI debe rechazarlo."""
+    result = runner.invoke(app, ["odoo", "search", "res.partner", "-l", "0"])
+    assert result.exit_code == 1
+    output = (result.stderr or "") + (result.stdout or "")
+    assert "limit" in output.lower()
+
+
+def test_search_negative_limit_rejected():
+    """Valores negativos de limit también se rechazan."""
+    result = runner.invoke(app, ["odoo", "search", "res.partner", "-l", "-1"])
+    assert result.exit_code != 0
