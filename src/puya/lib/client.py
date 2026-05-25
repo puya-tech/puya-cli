@@ -144,13 +144,26 @@ class PuyaClient:
         req_id = resp.headers.get("x-request-id")
         if req_id:
             emit_hint("correlation_id", req_id)
-        if resp.status_code == 202 and isinstance(body, dict) and body.get("pending_id"):
+
+        # Defensa universal contra silent failure de approval-pending:
+        # algunos endpoints server-side devuelven 200 (en vez del 202
+        # esperado) cuando crean un pending action. El body trae el
+        # `pending_id` igual, pero el cliente no se enteraba y el agente
+        # asumía que la operación se ejecutó. Normalizamos: si vemos
+        # pending_id en un 2xx, lo tratamos como 202 para que todos los
+        # comandos vean el contrato canónico.
+        status_code = resp.status_code
+        has_pending = isinstance(body, dict) and body.get("pending_id")
+        if has_pending and 200 <= status_code < 300 and status_code != 202:
+            status_code = 202
+
+        if status_code == 202 and has_pending:
             emit_hint("pending_id", body["pending_id"])
 
-        if resp.status_code == 202:
-            return resp.status_code, body
+        if status_code == 202:
+            return status_code, body
         if resp.is_success:
-            return resp.status_code, body
+            return status_code, body
 
         raise PuyaApiError(resp.status_code, body)
 

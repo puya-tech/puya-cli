@@ -57,10 +57,18 @@ def search_command(
 
     with client:
         try:
-            _, body = client.post("/api/cli-odoo/search", json=payload)
+            status, body = client.post("/api/cli-odoo/search", json=payload)
         except PuyaApiError as e:
             handle_api_error(e)
             return
+
+    # 202 = read bloqueado por threshold, server creó pending action.
+    # Emitimos el body completo (incluye pending_id) y exit 3 para que
+    # el agente espere approval — NO podemos devolver `body["records"]`
+    # silenciosamente como si fuera resultado vacío.
+    if status == 202:
+        emit(body, fmt=output)
+        raise typer.Exit(code=3)
 
     records = body.get("records", []) if isinstance(body, dict) else body
     emit(records, fmt=output)
