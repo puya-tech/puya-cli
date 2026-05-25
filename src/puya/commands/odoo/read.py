@@ -30,13 +30,17 @@ def read_command(
 
     with client:
         try:
-            _, body = client.post(
+            status, body = client.post(
                 "/api/cli-odoo/read",
                 json={"model": model, "ids": id_list, "fields": field_list},
             )
         except PuyaApiError as e:
             handle_api_error(e)
             return
+
+    if status == 202:
+        emit(body, fmt=output)
+        raise typer.Exit(code=3)
 
     records = body.get("records", []) if isinstance(body, dict) else body
     emit(records, fmt=output)

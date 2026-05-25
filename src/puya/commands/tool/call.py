@@ -48,7 +48,7 @@ def call_command(
     path = f"/api/custom/{slug}"
     with client:
         try:
-            _, response = client.post(path, json=body_json)
+            status, response = client.post(path, json=body_json)
         except PuyaApiError as e:
             # 404 sin error body en la respuesta = slug desconocido y el
             # server no nos dio contexto (típicamente Next.js auto-404).
@@ -66,6 +66,10 @@ def call_command(
             return
 
     emit(response, fmt=output)
+    # client.request() normaliza 2xx con body.pending_id a 202 (defensa
+    # contra endpoints custom que devuelven 200 + body de approval).
+    if status == 202:
+        raise typer.Exit(code=3)
 
 
 def _has_error_body(body: object) -> bool:

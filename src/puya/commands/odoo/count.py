@@ -25,12 +25,16 @@ def count_command(
 
     with client:
         try:
-            _, body = client.post(
+            status, body = client.post(
                 "/api/cli-odoo/count",
                 json={"model": model, "domain": domain_parsed},
             )
         except PuyaApiError as e:
             handle_api_error(e)
             return
+
+    if status == 202:
+        emit(body, fmt=output)
+        raise typer.Exit(code=3)
 
     emit(body, fmt=output)
