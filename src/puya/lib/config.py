@@ -106,6 +106,13 @@ def load_config(env_override: str | None = None) -> Config:
     elif prod_key and not staging_key:
         target_env, api_key = "production", prod_key
     elif legacy_key:
+        import sys
+
+        print(
+            "⚠ PUYA_API_KEY (legacy) detectada. Migrá a PUYA_API_KEY_STAGING / PUYA_API_KEY_PROD "
+            "para soporte multi-env explícito.",
+            file=sys.stderr,
+        )
         target_env, api_key = None, legacy_key
     elif staging_key and prod_key:
         # Ambas seteadas pero sin default — devolver vacío para que

@@ -32,7 +32,7 @@ Todo eso es **server-side**. Vos solo presentás la key y el comando.
 
 1. **Verificar instalación**:
    ```bash
-   puya version    # esperás "puya 1.1.0" o más
+   puya version    # esperás "puya 1.4.0" o más
    ```
    Si no está instalado:
    - Container con Python ≥3.10:

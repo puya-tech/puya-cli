@@ -177,3 +177,40 @@ def test_tool_call_200_normal_sigue_exit_0(mock_proxy):
     result = runner.invoke(app, ["tool", "call", "some-tool"])
     assert result.exit_code == 0
     assert '"result": "ok"' in result.stdout
+
+
+# ── pending --status filter ──────────────────────────────────────────────
+
+
+def test_pending_status_filter_confirmed(mock_proxy):
+    """--status confirmed filtra solo los pendings con status confirmed."""
+    mock_proxy["/api/cli-odoo/pending"] = (
+        200,
+        [
+            {"id": 1, "status": "confirmed", "action": "write"},
+            {"id": 2, "status": "cancelled", "action": "write"},
+            {"id": 3, "status": "confirmed", "action": "create"},
+        ],
+    )
+
+    result = runner.invoke(app, ["odoo", "pending", "-s", "confirmed"])
+    assert result.exit_code == 0
+    assert '"id": 1' in result.stdout
+    assert '"id": 3' in result.stdout
+    assert '"id": 2' not in result.stdout
+
+
+def test_pending_status_filter_invalid_shows_all(mock_proxy):
+    """Status inválido emite hint y devuelve todo sin filtrar."""
+    mock_proxy["/api/cli-odoo/pending"] = (
+        200,
+        [
+            {"id": 1, "status": "confirmed", "action": "write"},
+            {"id": 2, "status": "cancelled", "action": "write"},
+        ],
+    )
+
+    result = runner.invoke(app, ["odoo", "pending", "-s", "bogus"])
+    assert result.exit_code == 0
+    assert '"id": 1' in result.stdout
+    assert '"id": 2' in result.stdout
