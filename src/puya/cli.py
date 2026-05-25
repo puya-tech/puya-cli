@@ -33,7 +33,9 @@ app.add_typer(
 )
 
 # ── Comandos top-level ──────────────────────────────────────
-app.command(name="account", help="Info de mi consumer + listado de slots.")(account_command)
+app.command(name="account", help="Info de mi consumer + listado de api_keys (slots).")(
+    account_command
+)
 app.command(
     name="schema",
     help="Catálogo completo de comandos/flags como JSON (sin red, para agentes).",
