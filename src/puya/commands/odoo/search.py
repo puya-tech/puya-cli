@@ -77,4 +77,10 @@ def search_command(
         raise typer.Exit(code=3)
 
     records = body.get("records", []) if isinstance(body, dict) else body
+    if len(records) == limit:
+        from puya.lib.output import emit_hint
+
+        emit_hint(
+            "truncated", f"{limit} records devueltos (limit alcanzado) — usá --offset para paginar"
+        )
     emit(records, fmt=output)
