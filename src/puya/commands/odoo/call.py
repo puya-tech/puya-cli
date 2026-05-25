@@ -59,6 +59,10 @@ def call_command(
     }
     if reason:
         payload["reason"] = reason
+    else:
+        from puya.lib.output import emit_hint
+
+        emit_hint("no_reason", "sin --reason/-r: el pending quedará sin justificación en audit")
     if session_id:
         payload["session_id"] = session_id
 

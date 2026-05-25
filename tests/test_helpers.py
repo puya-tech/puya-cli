@@ -26,8 +26,10 @@ class TestParseIds:
     def test_json_list(self):
         assert parse_ids("[1,2,3]") == [1, 2, 3]
 
-    def test_json_list_vacia(self):
-        assert parse_ids("[]") == []
+    def test_json_list_vacia_sale_1(self):
+        with pytest.raises(typer.Exit) as exc:
+            parse_ids("[]")
+        assert exc.value.exit_code == 1
 
     def test_csv_invalido_sale_1(self):
         with pytest.raises(typer.Exit) as exc:

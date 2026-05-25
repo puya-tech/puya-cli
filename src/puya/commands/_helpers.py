@@ -96,12 +96,18 @@ def parse_ids(value: str) -> list[int]:
         if not isinstance(data, list) or not all(isinstance(x, int) for x in data):
             typer.echo("error: ids tiene que ser lista JSON de enteros", err=True)
             raise typer.Exit(code=1)
-        return data
-    try:
-        return [int(x.strip()) for x in s.split(",") if x.strip()]
-    except ValueError as e:
-        typer.echo(f"error: ids debe ser CSV de enteros o JSON list: {e}", err=True)
-        raise typer.Exit(code=1) from e
+        result = data
+    else:
+        try:
+            result = [int(x.strip()) for x in s.split(",") if x.strip()]
+        except ValueError as e:
+            typer.echo(f"error: ids debe ser CSV de enteros o JSON list: {e}", err=True)
+            raise typer.Exit(code=1) from e
+
+    if not result:
+        typer.echo("error: ids no puede estar vacío — pasá al menos un ID", err=True)
+        raise typer.Exit(code=1)
+    return result
 
 
 def handle_api_error(e: PuyaApiError) -> None:
