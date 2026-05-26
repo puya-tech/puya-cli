@@ -38,6 +38,10 @@ def call_command(
     El schema del body lo definís server-side en `custom_endpoints.schema`.
     Para verlo: `puya tool list` (devuelve cada slug con su JSON Schema).
     """
+    if "/" in slug or "\\" in slug or ".." in slug:
+        typer.echo("error: slug inválido — no puede contener '/', '\\' ni '..'", err=True)
+        raise typer.Exit(code=1)
+
     _, client = setup_client(env=env)
 
     body_json = parse_json("json", payload)

@@ -169,9 +169,15 @@ def validate_config(cfg: Config, env_override: str | None = None) -> str | None:
 
     if not cfg.api_key.startswith("puya_"):
         return (
-            f"API key no parece válida (debería empezar con 'puya_'): {cfg.api_key[:8]}…\n"
-            f"  Probable mismatch entre PUYA_API_KEY_* y --env / PUYA_TARGET_ENV. "
-            f"Verificá las env vars."
+            "API key no parece válida (debería empezar con 'puya_').\n"
+            "  Probable mismatch entre PUYA_API_KEY_* y --env / PUYA_TARGET_ENV. "
+            "Verificá las env vars."
+        )
+
+    if not cfg.base_url.startswith("https://") and not cfg.base_url.startswith("http://localhost"):
+        return (
+            f"PUYA_BASE_URL debe usar HTTPS (recibí: {cfg.base_url[:30]}…).\n"
+            "  El Bearer token viaja en el header — HTTP lo expone en cleartext."
         )
 
     return None

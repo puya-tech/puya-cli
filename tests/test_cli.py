@@ -90,10 +90,25 @@ def test_validate_config_rejects_empty_key():
 def test_validate_config_rejects_invalid_prefix():
     err = validate_config(Config(base_url="https://x", api_key="not_a_puya_key", target_env=None))
     assert err and "puya_" in err
+    assert "not_" not in err  # must NOT leak key prefix
 
 
 def test_validate_config_accepts_well_formed():
     err = validate_config(Config(base_url="https://x", api_key="puya_abc123", target_env=None))
+    assert err is None
+
+
+def test_validate_config_rejects_http_base_url():
+    err = validate_config(
+        Config(base_url="http://example.com", api_key="puya_abc", target_env=None)
+    )
+    assert err and "HTTPS" in err
+
+
+def test_validate_config_allows_http_localhost():
+    err = validate_config(
+        Config(base_url="http://localhost:3000", api_key="puya_abc", target_env=None)
+    )
     assert err is None
 
 

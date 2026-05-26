@@ -80,3 +80,24 @@ def test_call_200_funciona_normal(mock_http):
     assert result.exit_code == 0
     assert "result" in result.stdout
     assert "ok" in result.stdout
+
+
+# ── path traversal prevention ────────────────────────────────────────────
+
+
+@pytest.mark.parametrize(
+    "slug",
+    [
+        "../../api/cli-odoo/status",
+        "../cli-odoo/write",
+        "bulk-update/../../cli-odoo/search",
+        "a/b",
+        "..\\windows\\path",
+    ],
+)
+def test_call_rejects_path_traversal_in_slug(slug):
+    """Slug con '/', '..' o '\\' se rechaza client-side sin hacer red."""
+    result = runner.invoke(app, ["tool", "call", slug])
+    assert result.exit_code == 1
+    err = (result.stderr or "") + (result.stdout or "")
+    assert "slug inválido" in err
