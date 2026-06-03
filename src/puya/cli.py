@@ -12,6 +12,7 @@ import typer
 from puya import __version__
 from puya.commands.account import account_command
 from puya.commands.doctor import doctor_command
+from puya.commands.image import app as image_app
 from puya.commands.odoo import app as odoo_app
 from puya.commands.schema import schema_command
 from puya.commands.skills import app as skills_app
@@ -27,6 +28,9 @@ app = typer.Typer(
 
 # ── Subcomandos por dominio ─────────────────────────────────
 app.add_typer(odoo_app, name="odoo", help="Operaciones contra Odoo via puya-chat proxy.")
+app.add_typer(
+    image_app, name="image", help="Imágenes de producto IA (refinar candidatas pendientes)."
+)
 app.add_typer(tool_app, name="tool", help="Tools custom registradas server-side.")
 app.add_typer(
     skills_app, name="skills", help="Skills procedimentales (list / install / update / etc)."
