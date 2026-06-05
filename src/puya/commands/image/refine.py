@@ -38,18 +38,28 @@ def refine_command(
             help="request_uuid de la solicitud pendiente (alternativa a --sku).",
         ),
     ] = None,
+    product_id: Annotated[
+        str | None,
+        typer.Option(
+            "--product-id",
+            help="ID del producto/record (ej. desde el chatter de Odoo). Refina la "
+            "imagen ACTUAL del producto (image_1920), no una candidata pendiente.",
+        ),
+    ] = None,
     output: Annotated[str, typer.Option("--output", "-o")] = "json",
     env: EnvOption = None,
 ) -> None:
-    """Refina (post-proceso IA) una candidata de imagen aún no aprobada.
+    """Refina (post-proceso IA) una imagen de producto.
 
-    Toma la imagen que está pendiente de aprobación en Slack, le aplica la
-    instrucción con el motor de IA, y re-postea una tarjeta de aprobación
-    nueva. NO escribe en Odoo: el write final de image_1920 lo sigue gateando
-    el botón humano de aprobar.
+    Dos modos según el origen:
+    - --sku / --uuid: refina una candidata PENDIENTE de aprobación (flujo Slack).
+    - --product-id: refina la imagen ACTUAL del producto en Odoo (flujo chatter).
+
+    En ambos casos NO escribe en Odoo: re-postea una tarjeta de aprobación en
+    Slack y el write final de image_1920 lo gatea el botón humano.
     """
-    if not sku and not request_uuid:
-        typer.echo("error: pasá --sku o --uuid", err=True)
+    if not sku and not request_uuid and not product_id:
+        typer.echo("error: pasá --sku, --uuid o --product-id", err=True)
         raise typer.Exit(code=1)
 
     cfg = load_config(env_override=env)
@@ -58,16 +68,26 @@ def refine_command(
         typer.echo(f"error: {cfg_err}", err=True)
         raise typer.Exit(code=1)
 
-    payload: dict[str, str] = {"instruction": instruction}
-    if sku:
-        payload["default_code"] = sku
-    if request_uuid:
-        payload["request_uuid"] = request_uuid
+    payload: dict[str, object] = {"instruction": instruction}
+    if product_id:
+        # Refinar la imagen ACTUAL del producto (chatter): endpoint distinto.
+        try:
+            payload["product_id"] = int(product_id)
+        except ValueError:
+            typer.echo("error: --product-id debe ser un entero", err=True)
+            raise typer.Exit(code=1) from None
+        path = "/api/image/refine-product"
+    else:
+        if sku:
+            payload["default_code"] = sku
+        if request_uuid:
+            payload["request_uuid"] = request_uuid
+        path = "/api/image/refine"
 
     client = PuyaClient(cfg, timeout=_REFINE_TIMEOUT_SECONDS)
     with client:
         try:
-            _status, body = client.post("/api/image/refine", json=payload)
+            _status, body = client.post(path, json=payload)
         except PuyaApiError as e:
             handle_api_error(e)
             return
