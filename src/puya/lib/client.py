@@ -133,9 +133,11 @@ class PuyaClient:
             sys.exit(5)
 
         body: Any
+        json_ok = True
         try:
             body = resp.json()
         except ValueError:
+            json_ok = False
             body = resp.text
 
         # Hints laterales — stderr, no impactan stdout que ve el LLM.
@@ -162,6 +164,25 @@ class PuyaClient:
 
         if status_code == 202:
             return status_code, body
+
+        # Un 2xx cuyo body NO es JSON y NO está vacío es una anomalía, no un
+        # dato: típicamente una página HTML intersticial (staging en cold-start,
+        # un proxy sirviendo su propio error/login con 200). Sin esto, el CLI
+        # pasaba el HTML a stdout como si fuera la respuesta y el agente lo
+        # trataba como dato válido. Un 204/empty-body sigue siendo éxito
+        # legítimo (todos los endpoints con contenido devuelven JSON).
+        if resp.is_success and not json_ok and resp.text.strip():
+            ctype = resp.headers.get("content-type", "?")
+            raise PuyaApiError(
+                502,
+                {
+                    "error": (
+                        f"respuesta 2xx no-JSON del proxy (content-type={ctype}); "
+                        "probable cold-start / página intersticial, no un dato"
+                    )
+                },
+            )
+
         if resp.is_success:
             return status_code, body
 
