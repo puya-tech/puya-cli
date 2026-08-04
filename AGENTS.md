@@ -138,10 +138,49 @@ puya odoo call   <model> <method> --args '[[1,2]]' --kwargs '{}' -r "razón" [--
 puya odoo pending                             # listar mis pendings
 puya odoo pending <id>                        # detalle (incluye result si fue read aprobado)
 puya odoo cancel <id>                         # cancelar uno propio
+
+# Tools custom (catálogo dinámico por api_key)
+puya tool list                                # qué tools tengo habilitadas
+puya tool call <slug> --json '{...}'          # invocar una
 ```
 
 `-o table | json | raw` cambia el formato del stdout. Default = JSON
 parseable, ideal para que el agente parsee con `jq` o equivalente.
+
+## Cargas masivas: `bulk-update`, no N writes
+
+`puya odoo write <model> <ids> -v '{...}'` aplica **un solo dict de valores
+a todos los ids**. Sirve para "mismo valor a N registros" (liberar barcodes,
+resetear un campo, normalizar una frecuencia) y cuesta **una aprobación**.
+
+Para **valor distinto por fila** NO iteres writes: cada uno genera su propio
+pending y su propia tarjeta de Slack. 85 filas = 85 aprobaciones, y nadie va
+a clickear 85 veces. Para eso está la tool `bulk-update`:
+
+```bash
+puya tool call bulk-update --env production -j '{
+  "model": "stock.location",
+  "key_field": ".id",
+  "rows": [{".id": 9590, "barcode": "S0701"},
+           {".id": 9591, "barcode": "S0702"}],
+  "reason": "por qué"
+}'
+```
+
+Replica el import de la UI de Odoo vía `<model>.load()`: aplica onchanges,
+defaults y validaciones, y va **hasta 5000 filas en una sola aprobación**.
+
+- `key_field` default `.id` (id interno). También acepta `id` (external id),
+  `default_code`, `barcode`.
+- Many2one por id: `"location_out_id/.id": 15571`.
+- Chequeá con `puya tool list` que la tengas habilitada; si no, pedísela al
+  admin.
+
+**`load()` es atómico: una fila mala tumba el lote entero.** Antes de
+disparar, validá contra prod las constraints que aplican a lo que vas a
+escribir (unicidad, requeridos, dominios). Un caso real: 85 barcodes de
+ubicación fallaron entero porque 24 estaban ocupados por ubicaciones
+**archivadas** — la constraint SQL de Odoo no filtra por `active`.
 
 ## Para ops vs dev (semántica del cli_mode)
 
