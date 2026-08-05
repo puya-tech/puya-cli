@@ -27,6 +27,7 @@ from typing import Any
 
 import httpx
 
+from puya import __version__
 from puya.lib.config import Config
 from puya.lib.output import emit_hint
 
@@ -71,7 +72,14 @@ class PuyaApiError(Exception):
 class PuyaClient:
     def __init__(self, cfg: Config, *, timeout: float | None = None):
         self.cfg = cfg
-        headers: dict[str, str] = {"Authorization": f"Bearer {cfg.api_key}"}
+        # La versión va en el User-Agent, que el proxy ya persiste en
+        # `puya_cli.activity.user_agent`. Así se puede ver quién está corriendo
+        # una versión vieja sin depender de que lo reporte, y sin agregar una
+        # columna ni tocar el audit del server.
+        headers: dict[str, str] = {
+            "Authorization": f"Bearer {cfg.api_key}",
+            "User-Agent": f"puya-cli/{__version__}",
+        }
         # Validación defensiva server-side: si el env elegido por el cliente
         # no matchea el target_env de la api_key, puya-chat responde 400.
         # Solo se manda cuando el cliente eligió un env explícito (no en

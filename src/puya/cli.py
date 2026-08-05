@@ -17,6 +17,7 @@ from puya.commands.odoo import app as odoo_app
 from puya.commands.schema import schema_command
 from puya.commands.skills import app as skills_app
 from puya.commands.tool import app as tool_app
+from puya.commands.update import update_command
 
 app = typer.Typer(
     name="puya",
@@ -48,6 +49,10 @@ app.command(
     name="doctor",
     help="Diagnóstico del setup local (versiones, env vars, resolución, conectividad).",
 )(doctor_command)
+app.command(
+    name="update",
+    help="Actualiza el CLI a la última versión de main.",
+)(update_command)
 
 
 @app.command()
