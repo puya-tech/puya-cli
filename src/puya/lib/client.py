@@ -73,7 +73,7 @@ class PuyaClient:
     def __init__(self, cfg: Config, *, timeout: float | None = None):
         self.cfg = cfg
         # La versión va en el User-Agent, que el proxy ya persiste en
-        # `puya_cli.activity.user_agent`. Así se puede ver quién está corriendo
+        # `puya_cli.audit_log.user_agent`. Así se puede ver quién está corriendo
         # una versión vieja sin depender de que lo reporte, y sin agregar una
         # columna ni tocar el audit del server.
         headers: dict[str, str] = {
