@@ -32,7 +32,7 @@ Todo eso es **server-side**. Vos solo presentás la key y el comando.
 
 1. **Verificar instalación**:
    ```bash
-   puya version    # esperás "puya 1.4.0" o más
+   puya version    # esperás "puya 1.8.0" o más
    ```
    Si no está instalado:
    - Container con Python ≥3.10:
@@ -48,6 +48,11 @@ Todo eso es **server-side**. Vos solo presentás la key y el comando.
    - **200 OK con `target_env`** → todo listo, vas a operar contra ese env.
      La respuesta lista `cli_mode`, `models[]` y `custom_endpoints[]` —
      **leelos**, son tu fuente de verdad sobre qué podés hacer.
+   - **Aviso de versión desactualizada** → si `status` imprime
+     `⚠️ puya X está desactualizado` (y el hint `cli_update_available` en
+     stderr), corré **`puya update`** antes de seguir y volvé a hacer el
+     handshake. Estás corriendo código viejo: puede que te falten tools o
+     que arrastres bugs ya corregidos.
    - **"API key no seteada"** → el humano debe setear las env vars
      (`PUYA_BASE_URL`, `PUYA_API_KEY_STAGING`, `PUYA_API_KEY_PROD`,
      `PUYA_TARGET_ENV`). Pediselas, no inventes.
@@ -133,6 +138,11 @@ puya odoo write  <model> '[1,2]' -v '{"x":1}' -r "razón" [--env production]
 puya odoo create <model> -v '{...}'           -r "razón" [--env production]
 puya odoo delete <model> '[1,2]'              -r "razón" [--env production]
 puya odoo call   <model> <method> --args '[[1,2]]' --kwargs '{}' -r "razón" [--env production]
+
+# Mantenimiento
+puya version                                  # qué versión tengo
+puya update                                   # actualizar a la última de main
+puya doctor                                   # diagnóstico del setup local
 
 # Pendings (consumer-self)
 puya odoo pending                             # listar mis pendings
