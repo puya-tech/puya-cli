@@ -63,5 +63,17 @@ def write_command(
             return
 
     emit(body, fmt=output)
+
+    # Un write de un solo registro suele ser la primera iteración de un bucle
+    # "fila por fila", y cada vuelta genera su propio pending + tarjeta de
+    # Slack. Avisamos acá, que es donde se toma esa decisión.
+    if len(id_list) == 1:
+        typer.echo(
+            "nota: `write` aplica el mismo dict de valores a todos los ids. Si vas a "
+            "repetir esto con valores distintos por fila, usá "
+            "`puya tool call bulk-update` — hace hasta 5000 filas en UNA aprobación.",
+            err=True,
+        )
+
     if status == 202:
         raise typer.Exit(code=3)

@@ -33,3 +33,15 @@ def status_command(
             raise typer.Exit(code=e.exit_code) from e
 
     emit(body, fmt=output)
+
+    # `custom_endpoints` viene en el payload pero queda sepultado detrás de
+    # ~900 modelos, así que en la práctica nadie se entera de las tools que
+    # tiene habilitadas. Va a stderr para no tocar el contrato JSON de stdout.
+    tools = body.get("custom_endpoints") if isinstance(body, dict) else None
+    if tools:
+        typer.echo(
+            f"\ntools custom habilitadas para esta key: {', '.join(tools)}\n"
+            "  detalle:  puya tool list\n"
+            "  invocar:  puya tool call <slug> --json '{...}'",
+            err=True,
+        )
