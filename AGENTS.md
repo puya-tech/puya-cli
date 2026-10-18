@@ -1,6 +1,6 @@
 # AGENTS.md — guía para coding agents que usen `puya` CLI
 
-Audiencia: Puyol Ops, Puyol Dev, Codex, Claude Code y cualquier agente
+Audiencia: Codex, Claude Code y cualquier agente
 (cloud o local) que ejecute `puya odoo *`. No es un manual de usuario
 humano (eso vive en [README.md](README.md)). Acá pongo lo mínimo que
 necesitás internalizar para no equivocarte.
@@ -69,9 +69,7 @@ Todo eso es **server-side**. Vos solo presentás la key y el comando.
 
 | Agente | Provisioning de la key | Variables setean |
 |---|---|---|
-| **Puyol Ops** (container Railway) | Admin emite `puyol-ops-{staging,prod}` keys → Nico las inyecta en `puyol-production` | Set por Railway |
-| **Puyol Dev** (container Railway) | Idem con `puyol-dev-{staging,prod}` (cli_mode=read_only) | Set por Railway |
-| **Codex / Claude Code en máquina del dev** | El dev ya tiene su key personal (consumer = su email). Si no, pide acceso en `/cli-signup` y la usa después | El dev las exporta en su shell |
+| **Codex / Claude Code en máquina del dev** | El dev ya tiene su key personal (consumer = su email). Si no, un admin le crea el consumer en `/admin/cli-consumers` y el dev entra con magic link en `/cli-login` | El dev las exporta en su shell |
 | **Agente cloud nuevo (ej. otro container)** | Pedirle al admin que cree un consumer dedicado + slot por env | Inyectar en el container al deploy |
 
 > Para coding agents que corren en la máquina del developer (Claude Code,
@@ -269,14 +267,13 @@ Si los 3 pasan, el wiring está OK.
 | 4    | auth — key inválida/vencida/no autorizada (401) | NO retry. Reportar al humano para que rotee la key o pida una nueva al admin |
 | 5    | puya-chat caído u Odoo timeout (5xx + RequestError) | el CLI YA reintentó 1 vez para GETs antes de devolver exit 5. Si llegaste a 5, escalar humano. Para POST (mutations) no hay retry — el server tiene dedupe de pending actions pero el cliente no lo asume |
 
-## Si tu container es un agente Puyol
+## Si tu container es un agente cloud
 
-- `PUYA_API_KEY_STAGING` y `PUYA_API_KEY_PROD` se inyectan por Railway.
+- `PUYA_API_KEY_STAGING` y `PUYA_API_KEY_PROD` se inyectan en el deploy del
+  container (keys de un consumer dedicado que crea el admin).
 - `PUYA_TARGET_ENV` por default es `staging` mientras estés en validación.
-  Solo Nico (humano) lo cambia a `production` cuando corresponda.
-- Tu `cli_mode` (full vs read_only) ya viene fijado en cada key:
-  - `puyol-ops-*` → `full` con approval.
-  - `puyol-dev-*` → `read_only` (Dev nunca escribe Odoo, por construcción).
+  Solo un humano lo cambia a `production` cuando corresponda.
+- Tu `cli_mode` (full vs read_only) ya viene fijado en cada key.
 - El header `X-Puya-Requested-Env` lo manda el CLI automáticamente cuando
   resolvés un env explícito. **No hace falta que lo seteés a mano.**
 
