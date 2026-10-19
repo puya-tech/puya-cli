@@ -1,20 +1,18 @@
 # AGENTS.md — guía para coding agents que usen `puya` CLI
 
-Audiencia: Nicobot, Codex, Claude Code y cualquier agente (cloud o local)
-que ejecute `puya odoo *`. No es un manual de usuario humano (eso vive en
+Audiencia: cualquier agente (cloud o local) o persona que ejecute
+`puya odoo *`. No es un manual de usuario humano (eso vive en
 [README.md](README.md)). Acá pongo lo mínimo que necesitás internalizar
 para no equivocarte. Si vas a **modificar** el CLI, leé además
 «Desarrollar este repo», al final.
 
-## Quién es el admin
+## Quién administra
 
-Para todo lo que requiera intervención humana (crear slots, queries
-grandes, permisos especiales):
-
-- **`nlewin@costasurmat.cl`** — Nico Lewin
-- **`dducci@costasurmat.cl`** — Diego Ducci
-
-También responden en Slack `#puya-dev`.
+Consumers, keys, `cli_mode`, modelos permitidos y endpoints custom se
+administran en **puya-chat** (`/cli-account` y el panel de admins del proxy),
+no en este repo. El CLI no sabe ni necesita saber quién lo usa: presenta la
+key y el servidor decide. Para lo que requiera intervención humana (permisos,
+queries grandes), Slack `#puya-dev`.
 
 ## Qué es el CLI
 
@@ -66,13 +64,11 @@ Todo eso es **server-side**. Vos solo presentás la key y el comando.
    `models[]`, no insistas con ese modelo — el proxy te va a rechazar
    con 403. Reportá el límite y derivá al humano si hace falta acceso.
 
-## Cómo accede cada tipo de agente
+## Cómo se obtiene una key
 
-| Agente | Provisioning de la key | Variables setean |
-|---|---|---|
-| **Nicobot** (Hermes en `puya-agente`) | Consumer dedicado, emitido por un admin | En el entorno de Hermes |
-| **Codex / Claude Code en máquina del dev** | El dev ya tiene su key personal (consumer = su email). Si no, pide acceso en `/cli-signup` y la usa después | El dev las exporta en su shell |
-| **Agente cloud nuevo (ej. otro container)** | Pedirle al admin que cree un consumer dedicado + slot por env | Inyectar en el container al deploy |
+Cada consumer (persona o agente) tiene su propia key, emitida por un admin desde
+puya-chat y materializada una sola vez en `/cli-account`. Un agente cloud nuevo
+pide un consumer dedicado; nunca reutiliza la key de otro.
 
 > Para coding agents que corren en la máquina del developer (Claude Code,
 > Codex local), **NO podés asumir que el CLI ya está instalado o
