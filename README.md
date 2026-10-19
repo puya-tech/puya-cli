@@ -15,8 +15,8 @@ pipx install git+https://github.com/puya-tech/puya-cli.git
 puya version
 ```
 
-Pedile a un admin (`nlewin@costasurmat.cl` o `dducci@costasurmat.cl`)
-una key por entorno y materializala en
+Pedile a un admin del proxy de puya-chat (Slack `#puya-dev`) una key por
+entorno y materializala en
 https://puya-chat-interno.vercel.app/cli-account (se ve plana **una sola
 vez**).
 
