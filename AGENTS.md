@@ -1,9 +1,10 @@
 # AGENTS.md — guía para coding agents que usen `puya` CLI
 
-Audiencia: Puyol Ops, Puyol Dev, Codex, Claude Code y cualquier agente
-(cloud o local) que ejecute `puya odoo *`. No es un manual de usuario
-humano (eso vive en [README.md](README.md)). Acá pongo lo mínimo que
-necesitás internalizar para no equivocarte.
+Audiencia: Nicobot, Codex, Claude Code y cualquier agente (cloud o local)
+que ejecute `puya odoo *`. No es un manual de usuario humano (eso vive en
+[README.md](README.md)). Acá pongo lo mínimo que necesitás internalizar
+para no equivocarte. Si vas a **modificar** el CLI, leé además
+«Desarrollar este repo», al final.
 
 ## Quién es el admin
 
@@ -69,8 +70,7 @@ Todo eso es **server-side**. Vos solo presentás la key y el comando.
 
 | Agente | Provisioning de la key | Variables setean |
 |---|---|---|
-| **Puyol Ops** (container Railway) | Admin emite `puyol-ops-{staging,prod}` keys → Nico las inyecta en `puyol-production` | Set por Railway |
-| **Puyol Dev** (container Railway) | Idem con `puyol-dev-{staging,prod}` (cli_mode=read_only) | Set por Railway |
+| **Nicobot** (Hermes en `puya-agente`) | Consumer dedicado, emitido por un admin | En el entorno de Hermes |
 | **Codex / Claude Code en máquina del dev** | El dev ya tiene su key personal (consumer = su email). Si no, pide acceso en `/cli-signup` y la usa después | El dev las exporta en su shell |
 | **Agente cloud nuevo (ej. otro container)** | Pedirle al admin que cree un consumer dedicado + slot por env | Inyectar en el container al deploy |
 
@@ -269,17 +269,6 @@ Si los 3 pasan, el wiring está OK.
 | 4    | auth — key inválida/vencida/no autorizada (401) | NO retry. Reportar al humano para que rotee la key o pida una nueva al admin |
 | 5    | puya-chat caído u Odoo timeout (5xx + RequestError) | el CLI YA reintentó 1 vez para GETs antes de devolver exit 5. Si llegaste a 5, escalar humano. Para POST (mutations) no hay retry — el server tiene dedupe de pending actions pero el cliente no lo asume |
 
-## Si tu container es un agente Puyol
-
-- `PUYA_API_KEY_STAGING` y `PUYA_API_KEY_PROD` se inyectan por Railway.
-- `PUYA_TARGET_ENV` por default es `staging` mientras estés en validación.
-  Solo Nico (humano) lo cambia a `production` cuando corresponda.
-- Tu `cli_mode` (full vs read_only) ya viene fijado en cada key:
-  - `puyol-ops-*` → `full` con approval.
-  - `puyol-dev-*` → `read_only` (Dev nunca escribe Odoo, por construcción).
-- El header `X-Puya-Requested-Env` lo manda el CLI automáticamente cuando
-  resolvés un env explícito. **No hace falta que lo seteés a mano.**
-
 ## Cuándo escalar al humano
 
 Reportá al usuario y parate si:
@@ -302,3 +291,20 @@ Para v1.0.x el modelo era single-key (`PUYA_API_KEY` solamente, sin
 `--env`). Si ves `puya version` y dice `1.0.x`, no esperes que `--env`
 funcione — bumpeá el `pip install` con `git+https://...` para traer la
 versión nueva.
+
+## Desarrollar este repo
+
+- **Repo público.** Nada de keys, URLs internas nuevas ni datos de clientes en
+  código, tests o fixtures. La seguridad vive en el proxy de puya-chat, no acá.
+- **Flujo:** rama desde `main` → PR → merge. El CI (`.github/workflows/ci.yml`)
+  corre `ruff check`, `ruff format --check` y `pytest`; local: `uv sync --dev`
+  y los mismos tres comandos con `uv run`.
+- **Publicar una versión:** no hay tags ni releases; `main` es lo que instala
+  `puya update`. Al cambiar comportamiento:
+  1. Subir la versión en `pyproject.toml` **y** `src/puya/__init__.py`.
+  2. Mergear a `main`.
+  3. En puya-chat, migración que suba `puya_cli.config.cli_latest_version`
+     (ver `supabase/migrations/20260805073000_cli_latest_version.sql`). Así
+     `puya odoo status` avisa a todos que actualicen.
+- Lo que el CLI puede hacer lo decide el servidor: endpoints nuevos se agregan
+  primero en puya-chat (`app/api/cli-odoo/*`, `lib/cli-proxy`) y después acá.
