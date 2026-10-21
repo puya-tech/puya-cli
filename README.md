@@ -61,9 +61,15 @@ out=$(puya odoo write product.template '[1234]' \
 code=$?
 if [ $code -eq 3 ]; then
   pending_id=$(echo "$out" | jq -r .pending_id)
-  echo "Esperando aprobación de pending #$pending_id en Slack..."
+  # Bloquea hasta que se ejecuta, falla, se rechaza o expira (máx 30 min).
+  puya odoo wait "$pending_id"
 fi
 ```
+
+O en un paso: `puya odoo write ... --wait`. `puya odoo wait` imprime una
+línea JSON por pending con su `outcome` (`executed` con el resultado,
+`failed` con el error, `rejected`, `cancelled`, `expired`) y sale con 0 si
+todos se ejecutaron, 1 si alguno terminó distinto y 3 si se acabó el tiempo.
 
 ## Referencias
 

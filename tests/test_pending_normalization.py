@@ -179,38 +179,53 @@ def test_tool_call_200_normal_sigue_exit_0(mock_proxy):
     assert '"result": "ok"' in result.stdout
 
 
-# ── pending --status filter ──────────────────────────────────────────────
+# ── pending --status filter (server-side desde 1.9.0) ──────────────────
 
 
-def test_pending_status_filter_confirmed(mock_proxy):
-    """--status confirmed filtra solo los pendings con status confirmed."""
-    mock_proxy["/api/cli-odoo/pending"] = (
-        200,
-        [
-            {"id": 1, "status": "confirmed", "action": "write"},
-            {"id": 2, "status": "cancelled", "action": "write"},
-            {"id": 3, "status": "confirmed", "action": "create"},
-        ],
-    )
+@pytest.fixture
+def seen_urls(monkeypatch):
+    """Como mock_proxy, pero registra la URL completa (con query) de cada request."""
+    urls: list[str] = []
 
+    def handler(request: httpx.Request) -> httpx.Response:
+        urls.append(str(request.url))
+        return httpx.Response(200, json={"pendings": [{"id": 1, "outcome": "executed"}]})
+
+    transport = httpx.MockTransport(handler)
+    original_init = httpx.Client.__init__
+
+    def patched_init(self, *args, **kwargs):
+        kwargs["transport"] = transport
+        original_init(self, *args, **kwargs)
+
+    monkeypatch.setattr(httpx.Client, "__init__", patched_init)
+    monkeypatch.setenv("PUYA_API_KEY_STAGING", "puya_test")
+    monkeypatch.delenv("PUYA_API_KEY_PROD", raising=False)
+    monkeypatch.delenv("PUYA_API_KEY", raising=False)
+    monkeypatch.delenv("PUYA_TARGET_ENV", raising=False)
+    return urls
+
+
+def test_pending_status_y_limit_van_al_server(seen_urls):
+    result = runner.invoke(app, ["odoo", "pending", "-s", "failed", "-l", "5"])
+    assert result.exit_code == 0
+    assert seen_urls[-1].endswith("/api/cli-odoo/pending?status=failed&limit=5")
+    assert '"id": 1' in result.stdout
+
+
+def test_pending_status_confirmed_se_traduce_a_executed(seen_urls):
     result = runner.invoke(app, ["odoo", "pending", "-s", "confirmed"])
     assert result.exit_code == 0
-    assert '"id": 1' in result.stdout
-    assert '"id": 3' in result.stdout
-    assert '"id": 2' not in result.stdout
+    assert seen_urls[-1].endswith("?status=executed")
 
 
-def test_pending_status_filter_invalid_shows_all(mock_proxy):
-    """Status inválido emite hint y devuelve todo sin filtrar."""
-    mock_proxy["/api/cli-odoo/pending"] = (
-        200,
-        [
-            {"id": 1, "status": "confirmed", "action": "write"},
-            {"id": 2, "status": "cancelled", "action": "write"},
-        ],
-    )
-
-    result = runner.invoke(app, ["odoo", "pending", "-s", "bogus"])
+def test_pending_sin_filtros_no_manda_query(seen_urls):
+    result = runner.invoke(app, ["odoo", "pending"])
     assert result.exit_code == 0
-    assert '"id": 1' in result.stdout
-    assert '"id": 2' in result.stdout
+    assert seen_urls[-1].endswith("/api/cli-odoo/pending")
+
+
+def test_pending_status_invalido_falla_sin_llamar(seen_urls):
+    result = runner.invoke(app, ["odoo", "pending", "-s", "bogus"])
+    assert result.exit_code == 1
+    assert seen_urls == []

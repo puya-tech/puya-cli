@@ -44,10 +44,23 @@ SessionIdOption = Annotated[
 ]
 
 
-def setup_client(env: str | None = None) -> tuple[Config, PuyaClient]:
+# Anotación reusable para mutations: en vez de salir con exit 3 al quedar
+# pendiente, espera el desenlace (ver `puya odoo wait`).
+WaitOption = Annotated[
+    bool,
+    typer.Option(
+        "--wait",
+        help="Si queda pendiente de aprobación, esperar el desenlace (hasta 30 min) "
+        "e imprimirlo, en vez de salir con exit 3.",
+    ),
+]
+
+
+def setup_client(env: str | None = None, timeout: float | None = None) -> tuple[Config, PuyaClient]:
     """Carga config + valida + abre cliente HTTP.
 
     `env` es el override de la flag `--env` del subcomando (si vino).
+    `timeout` pisa el de la config (lo usa `wait` para el long-poll).
     Sale con código 1 si la config es inválida.
     """
     cfg = load_config(env_override=env)
@@ -55,7 +68,7 @@ def setup_client(env: str | None = None) -> tuple[Config, PuyaClient]:
     if err:
         typer.echo(f"error: {err}", err=True)
         raise typer.Exit(code=1)
-    return cfg, PuyaClient(cfg)
+    return cfg, PuyaClient(cfg, timeout=timeout)
 
 
 def parse_json(label: str, value: str) -> object:
