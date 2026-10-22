@@ -9,7 +9,8 @@ authors = [
 requires-python = ">=3.10"
 license = { text = "MIT" }
 dependencies = [
-    "typer>=0.13",
+    # typer 0.26 dejó de depender de click; `puya schema` lo importa directo.
+    "typer>=0.13,<0.26",
     "rich>=13.9",
     "httpx>=0.28",
 ]
