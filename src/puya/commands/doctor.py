@@ -30,7 +30,6 @@ from rich.console import Console
 from puya import __version__
 from puya.lib.config import (
     DEFAULT_BASE_URL,
-    ENV_TO_VAR,
     load_config,
     validate_config,
 )
@@ -69,21 +68,15 @@ def _gather_env_vars() -> dict:
     return out
 
 
-def _resolve_config(env_vars: dict) -> dict:
+def _resolve_config() -> dict:
     cfg = load_config(env_override=None)
     err = validate_config(cfg, env_override=None)
-
-    source: str | None = None
-    if cfg.api_key:
-        if cfg.target_env in ENV_TO_VAR:
-            source = ENV_TO_VAR[cfg.target_env]
-        elif env_vars.get("PUYA_API_KEY", {}).get("set"):
-            source = "PUYA_API_KEY"
 
     return {
         "base_url": cfg.base_url,
         "target_env": cfg.target_env,
-        "api_key_source": source,
+        # nombre de la env var, o "puya login" si sale de la sesión guardada
+        "api_key_source": cfg.source if cfg.api_key else None,
         "error": err,
     }
 
@@ -112,7 +105,7 @@ def _check_connectivity(base_url: str, *, timeout: float = 5.0) -> dict:
 
 def _gather(*, no_network: bool) -> dict:
     env_vars = _gather_env_vars()
-    resolution = _resolve_config(env_vars)
+    resolution = _resolve_config()
     connectivity = (
         {
             "checked": False,

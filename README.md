@@ -15,7 +15,21 @@ pipx install git+https://github.com/puya-tech/puya-cli.git
 puya version
 ```
 
-Pedile a un admin del proxy de puya-chat (Slack `#puya-dev`) una key por
+**Personas:** entra con tu Google @costasurmat.cl. Un admin (Nico o Diego)
+te habilita el acceso en puya-chat; tú no manejas keys.
+
+```bash
+puya login                 # abre el navegador; --env staging|production si tienes ambos
+puya odoo status
+puya login --no-browser    # sin navegador en este equipo (SSH): pegas la dirección de vuelta
+puya logout
+```
+
+La sesión queda en `~/.config/puya/credentials.json` (permisos 600) y se
+refresca sola. Dura hasta 30 días; después, `puya login` de nuevo.
+
+**Máquinas (agentes, servicios):** usan una key `puya_` por entorno. Pedile a un
+admin del proxy de puya-chat (Slack `#puya-dev`) una key por
 entorno y materializala en
 https://puya-chat-interno.vercel.app/cli-account (se ve plana **una sola
 vez**).

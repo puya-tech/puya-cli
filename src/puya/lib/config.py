@@ -26,7 +26,10 @@ Resolución de la key efectiva (en orden):
        - usa esa (sin ambigüedad).
   4. Si PUYA_API_KEY (legacy) está seteada:
        - usa esa, target_env queda None (se infiere server-side).
-  5. Si nada de lo anterior:
+  5. Si no hubo key en env vars: la sesión de `puya login` del entorno
+     pedido, o la única guardada (ver puya.lib.login). Las env vars ganan:
+     son de máquinas y lo explícito no lo pisa una sesión guardada.
+  6. Si nada de lo anterior:
        - error con instrucciones de setup.
 
 Si STAGING y PROD están seteadas pero falta default (--env y PUYA_TARGET_ENV
@@ -56,6 +59,8 @@ class Config:
     target_env: str | None
     # Timeout (segundos) para requests HTTP. Override con PUYA_TIMEOUT.
     timeout: float = DEFAULT_TIMEOUT
+    # De dónde salió la credencial: nombre de la env var o "puya login".
+    source: str | None = None
 
 
 def _normalize_env(value: str | None) -> str | None:
@@ -97,14 +102,16 @@ def load_config(env_override: str | None = None) -> Config:
 
     target_env: str | None = None
     api_key: str = ""
+    source: str | None = None
 
     if requested in VALID_ENVS:
         target_env = requested
         api_key = staging_key if requested == "staging" else prod_key
+        source = ENV_TO_VAR[requested] if api_key else None
     elif staging_key and not prod_key:
-        target_env, api_key = "staging", staging_key
+        target_env, api_key, source = "staging", staging_key, ENV_TO_VAR["staging"]
     elif prod_key and not staging_key:
-        target_env, api_key = "production", prod_key
+        target_env, api_key, source = "production", prod_key, ENV_TO_VAR["production"]
     elif legacy_key:
         import sys
 
@@ -113,13 +120,27 @@ def load_config(env_override: str | None = None) -> Config:
             "para soporte multi-env explícito.",
             file=sys.stderr,
         )
-        target_env, api_key = None, legacy_key
+        target_env, api_key, source = None, legacy_key, "PUYA_API_KEY"
     elif staging_key and prod_key:
         # Ambas seteadas pero sin default — devolver vacío para que
         # validate_config emita un error pidiendo --env / PUYA_TARGET_ENV.
         target_env, api_key = None, ""
 
-    return Config(base_url=base_url, api_key=api_key, target_env=target_env, timeout=timeout)
+    if not api_key and not (staging_key and prod_key and requested not in VALID_ENVS):
+        from puya.lib.login import access_token_for, stored_sessions
+
+        if requested in VALID_ENVS:
+            env_login: str | None = requested
+        else:
+            stored = list(stored_sessions(base_url))
+            env_login = stored[0] if len(stored) == 1 else None
+        token = access_token_for(env_login, base_url) if env_login else None
+        if token:
+            target_env, api_key, source = env_login, token, "puya login"
+
+    return Config(
+        base_url=base_url, api_key=api_key, target_env=target_env, timeout=timeout, source=source
+    )
 
 
 def validate_config(cfg: Config, env_override: str | None = None) -> str | None:
@@ -143,9 +164,9 @@ def validate_config(cfg: Config, env_override: str | None = None) -> str | None:
         if requested in VALID_ENVS:
             var = ENV_TO_VAR[requested]
             return (
-                f"{var} no seteada — no podés operar contra '{requested}' sin esa key.\n"
-                f"  Setealá con la key emitida en /cli-account, o pasá --env apuntando "
-                f"al entorno cuya key sí tengas."
+                f"sin credencial para '{requested}'.\n"
+                f"  Personas: puya login --env {requested}  (entra con tu Google)\n"
+                f"  Máquinas: {var}=puya_… con la key emitida en /cli-account."
             )
         if staging_key and prod_key:
             return (
@@ -154,7 +175,8 @@ def validate_config(cfg: Config, env_override: str | None = None) -> str | None:
                 "o exportá PUYA_TARGET_ENV=<staging|production>."
             )
         return (
-            "API key no seteada. Configurala así:\n"
+            "API key no seteada. Si eres una persona: puya login  (entra con tu Google).\n"
+            "Para máquinas, configúrala así:\n"
             "  Multi-env (recomendado para agentes Puyol):\n"
             "    export PUYA_API_KEY_STAGING=puya_xxx\n"
             "    export PUYA_API_KEY_PROD=puya_yyy\n"
@@ -167,7 +189,7 @@ def validate_config(cfg: Config, env_override: str | None = None) -> str | None:
             "  Verificá con: puya odoo status"
         )
 
-    if not cfg.api_key.startswith("puya_"):
+    if not cfg.api_key.startswith(("puya_", "pmt_")):
         return (
             "API key no parece válida (debería empezar con 'puya_').\n"
             "  Probable mismatch entre PUYA_API_KEY_* y --env / PUYA_TARGET_ENV. "

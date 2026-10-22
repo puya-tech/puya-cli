@@ -13,6 +13,7 @@ from puya import __version__
 from puya.commands.account import account_command
 from puya.commands.doctor import doctor_command
 from puya.commands.image import app as image_app
+from puya.commands.login import login_command, logout_command
 from puya.commands.odoo import app as odoo_app
 from puya.commands.schema import schema_command
 from puya.commands.skills import app as skills_app
@@ -49,6 +50,11 @@ app.command(
     name="doctor",
     help="Diagnóstico del setup local (versiones, env vars, resolución, conectividad).",
 )(doctor_command)
+app.command(
+    name="login",
+    help="Entra con tu Google (@costasurmat.cl) y guarda la sesión en este equipo.",
+)(login_command)
+app.command(name="logout", help="Borra la sesión guardada por puya login.")(logout_command)
 app.command(
     name="update",
     help="Actualiza el CLI a la última versión de main.",
