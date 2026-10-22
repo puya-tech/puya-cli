@@ -19,6 +19,7 @@ from puya.commands.odoo.pending import pending_command
 from puya.commands.odoo.read import read_command
 from puya.commands.odoo.search import search_command
 from puya.commands.odoo.status import status_command
+from puya.commands.odoo.wait import wait_command
 from puya.commands.odoo.write import write_command
 
 app = typer.Typer(
@@ -44,3 +45,4 @@ app.command(name="call")(call_command)
 # La aprobación NO es self-service: vive en el flujo Slack del admin.
 app.command(name="cancel")(cancel_command)
 app.command(name="pending")(pending_command)
+app.command(name="wait")(wait_command)

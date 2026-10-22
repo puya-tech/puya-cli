@@ -31,7 +31,7 @@ Todo eso es **server-side**. Vos solo presentás la key y el comando.
 
 1. **Verificar instalación**:
    ```bash
-   puya version    # esperás "puya 1.8.0" o más
+   puya version    # esperás "puya 1.9.0" o más
    ```
    Si no está instalado:
    - Container con Python ≥3.10:
@@ -109,9 +109,20 @@ el CLI **rechaza**. No adivina. Tenés que elegir.
 
 4. **Una mutación bloqueada por approval** devuelve **exit code 3** con
    `pending_id` en el JSON. Tu siguiente paso NO es reintentar: es
-   responder al humano con el `pending_id` y que apruebe en Slack.
-   Cuando aprueba, la acción corre server-side; vos no la disparás de
-   nuevo.
+   avisarle al humano el `pending_id` para que apruebe en Slack y
+   **esperar el desenlace con `puya odoo wait <pending_id>`**, no
+   pedirle que te avise. Cuando aprueba, la acción corre server-side; vos
+   no la disparás de nuevo.
+   - En Claude Code, corré `wait` en background (`run_in_background`): el
+     harness te despierta cuando termina. Con varios ids, cada uno imprime
+     su línea al resolverse (sirve para `Monitor`).
+   - `outcome: executed` trae el resultado de la ejecución (ej. el id
+     creado). `failed` trae el error: la acción sigue aprobable, así que
+     corregí la causa y pedile al humano que reintente, y esperá con
+     `puya odoo wait <id> --since <error.at>`. `rejected`, `cancelled`,
+     `expired`: no se aplicó.
+   - **Pasos dependientes** (ej. publicar un asiento antes de conciliar):
+     no pidas el siguiente hasta que el anterior esté `executed`.
 
 5. **No expongas la key**. Nunca la imprimas en logs, mensajes de Slack,
    tarjetas Notion ni en respuestas. Solo viaja en `Authorization: Bearer`
@@ -141,7 +152,9 @@ puya update                                   # actualizar a la última de main
 puya doctor                                   # diagnóstico del setup local
 
 # Pendings (consumer-self)
-puya odoo pending                             # listar mis pendings
+puya odoo wait <id> [<id>...]                 # esperar el desenlace (exit 0 ejecutado, 1 no, 3 timeout)
+puya odoo write ... --wait                    # pedir y esperar en un paso (también create/delete/call)
+puya odoo pending                             # mis últimos 10 (-s failed, -l 50)
 puya odoo pending <id>                        # detalle (incluye result si fue read aprobado)
 puya odoo cancel <id>                         # cancelar uno propio
 
@@ -261,7 +274,7 @@ Si los 3 pasan, el wiring está OK.
 | 0    | OK                                           | seguir                                                  |
 | 1    | input mal formado, modelo no whitelist, RBAC (400/403/404/409/422/429) | leer el `error` del JSON, NO retry ciego  |
 | 2    | usage error de Click (comando inexistente, missing option, tipo inválido) | corregir la invocación. NO retry — esto NUNCA es un problema de server |
-| 3    | pending action creada                        | reportar `pending_id`, esperar approval — NO retry      |
+| 3    | pending action creada (o `wait` sin desenlace al vencer) | reportar `pending_id` y `puya odoo wait <id>` — NO retry |
 | 4    | auth — key inválida/vencida/no autorizada (401) | NO retry. Reportar al humano para que rotee la key o pida una nueva al admin |
 | 5    | puya-chat caído u Odoo timeout (5xx + RequestError) | el CLI YA reintentó 1 vez para GETs antes de devolver exit 5. Si llegaste a 5, escalar humano. Para POST (mutations) no hay retry — el server tiene dedupe de pending actions pero el cliente no lo asume |
 
@@ -271,8 +284,8 @@ Reportá al usuario y parate si:
 
 - `puya odoo status` falla con 401/403/500 → la key necesita
   intervención del admin.
-- Un write devolvió exit 3 y pasó >10 min sin approval — el humano
-  puede haberse olvidado.
+- `puya odoo wait` venció (exit 3) sin approval — el humano puede
+  haberse olvidado.
 - Un modelo que necesitás no está en `models[]` → política del admin,
   no es bug del CLI.
 - Recibiste 400 con mensaje de "env mismatch" → config rota; no podés

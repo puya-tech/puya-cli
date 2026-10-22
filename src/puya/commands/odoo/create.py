@@ -9,10 +9,12 @@ import typer
 from puya.commands._helpers import (
     EnvOption,
     SessionIdOption,
+    WaitOption,
     handle_api_error,
     parse_json,
     setup_client,
 )
+from puya.commands.odoo.wait import finish_mutation
 from puya.lib.client import PuyaApiError
 from puya.lib.output import emit
 
@@ -29,6 +31,7 @@ def create_command(
     output: Annotated[str, typer.Option("--output", "-o")] = "json",
     env: EnvOption = None,
     session_id: SessionIdOption = None,
+    wait: WaitOption = False,
 ) -> None:
     """Crea pending action con approval requerido (exit 3)."""
     _, client = setup_client(env=env)
@@ -55,5 +58,4 @@ def create_command(
             return
 
     emit(body, fmt=output)
-    if status == 202:
-        raise typer.Exit(code=3)
+    finish_mutation(status, body, wait, env)
