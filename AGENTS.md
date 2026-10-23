@@ -64,11 +64,19 @@ Todo eso es **server-side**. Vos solo presentás la key y el comando.
    `models[]`, no insistas con ese modelo — el proxy te va a rechazar
    con 403. Reportá el límite y derivá al humano si hace falta acceso.
 
-## Cómo se obtiene una key
+## Cómo se obtiene una credencial
 
-Cada consumer (persona o agente) tiene su propia key, emitida por un admin desde
-puya-chat y materializada una sola vez en `/cli-account`. Un agente cloud nuevo
-pide un consumer dedicado; nunca reutiliza la key de otro.
+- **Personas:** `puya login` (entra con Google @costasurmat.cl; un admin habilita
+  el acceso en puya-chat). Guarda la sesión en `~/.config/puya/credentials.json`
+  y la refresca sola; dura hasta 30 días. Si un comando da exit 4 con «sesión
+  cerrada» o «venció», hay que volver a correr `puya login`: un agente no puede
+  hacerlo solo, se lo pide al humano.
+- **Máquinas:** cada agente tiene su propia key `puya_`, emitida por un admin
+  desde puya-chat y materializada una sola vez en `/cli-account`. Un agente
+  cloud nuevo pide un consumer dedicado; nunca reutiliza la key de otro.
+
+Si hay una key en env vars (`PUYA_API_KEY*`), gana sobre la sesión de
+`puya login`. `puya doctor` dice cuál se usó (`api_key_source`).
 
 > Para coding agents que corren en la máquina del developer (Claude Code,
 > Codex local), **NO podés asumir que el CLI ya está instalado o
