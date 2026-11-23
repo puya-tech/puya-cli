@@ -31,14 +31,14 @@ refresca sola. Dura hasta 30 días; después, `puya login` de nuevo.
 **Máquinas (agentes, servicios):** usan una key `puya_` por entorno. Pedile a un
 admin del proxy de puya-chat (Slack `#puya-dev`) una key por
 entorno y materializala en
-https://puya-chat-interno.vercel.app/cli-account (se ve plana **una sola
+https://puyai.puyacentro.cl/cli-account (se ve plana **una sola
 vez**).
 
 Setear las env vars de la manera que prefieras en tu shell — ver
 [`.env.example`](.env.example) para la lista completa:
 
 ```bash
-export PUYA_BASE_URL=https://puya-chat-interno.vercel.app
+export PUYA_BASE_URL=https://puyai.puyacentro.cl
 export PUYA_API_KEY_STAGING=puya_...
 export PUYA_API_KEY_PROD=puya_...
 export PUYA_TARGET_ENV=staging   # default cuando hay ambas keys cargadas
@@ -87,6 +87,6 @@ todos se ejecutaron, 1 si alguno terminó distinto y 3 si se acabó el tiempo.
 
 ## Referencias
 
-- Materializar y administrar keys: `https://puya-chat-interno.vercel.app/cli-account`
+- Materializar y administrar keys: `https://puyai.puyacentro.cl/cli-account`
 - Operación interna del CLI, flow approval, deployment de agentes: [AGENTS.md](AGENTS.md)
 - Issues: [github.com/puya-tech/puya-cli/issues](https://github.com/puya-tech/puya-cli/issues)
