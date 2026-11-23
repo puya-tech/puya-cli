@@ -6,7 +6,7 @@ producción desde un mismo proceso, eligiendo la key correcta según
 la flag `--env` o el default `PUYA_TARGET_ENV`.
 
 Env vars:
-  PUYA_BASE_URL          URL del backend (ej: https://puya-chat-interno.vercel.app).
+  PUYA_BASE_URL          URL del backend (ej: https://puyai.puyacentro.cl).
   PUYA_API_KEY_STAGING   API key con target_env=staging.
   PUYA_API_KEY_PROD      API key con target_env=production.
   PUYA_TARGET_ENV        Default cuando no se pasa --env. Valores: staging | production.
@@ -41,7 +41,7 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass
 
-DEFAULT_BASE_URL = "https://puya-chat-interno.vercel.app"
+DEFAULT_BASE_URL = "https://puyai.puyacentro.cl"
 DEFAULT_TIMEOUT = 30.0
 VALID_ENVS = ("staging", "production")
 ENV_TO_VAR = {
